@@ -1,0 +1,22 @@
+{
+  "name": "perx",
+  "private": true,
+  "description": "Perx — employee benefits marketplace. Backend API + mobile (Expo) + desktop (Electron) + landing.",
+  "scripts": {
+    "api": "node backend/index.js",
+    "seed": "node backend/database.js --seed",
+    "desktop": "npm --prefix apps/desktop run dev",
+    "mobile": "npm --prefix apps/mobile start",
+    "dev": "concurrently -k -n api,desktop -c teal,magenta \"npm:api\" \"npm:desktop\"",
+    "install:all": "npm install && npm --prefix apps/desktop install && npm --prefix apps/mobile install"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.11.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3"
+  }
+}

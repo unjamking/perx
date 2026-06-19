@@ -1,0 +1,129 @@
+:root {
+  --bg:             #C1D9DE;
+  --card:           #FFFFFF;
+  --surface:        #5C9396;
+  --accent:         #215E68;
+  --dark:           #013137;
+  --hover:          #297376;
+  --text:           #013137;
+  --text-secondary: #297376;
+  --text-on-dark:   #C1D9DE;
+  --border:         rgba(33,94,104,0.12);
+  --radius-card:    20px;
+  --radius-btn:     12px;
+  --radius-tag:     99px;
+  --shadow:         0 2px 20px rgba(1,49,55,0.08);
+  --shadow-hover:   0 8px 32px rgba(1,49,55,0.16);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root { height: 100%; }
+
+body {
+  font-family: "Inter", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, select, textarea { font-family: inherit; }
+
+/* ---------- shared primitives ---------- */
+.card {
+  background: var(--card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+
+.btn {
+  border-radius: var(--radius-btn);
+  padding: 12px 20px;
+  font-weight: 600;
+  font-size: 15px;
+  transition: background .15s, box-shadow .15s, transform .1s;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--hover); }
+.btn-outline { border: 2px solid var(--accent); color: var(--accent); background: transparent; }
+.btn-outline-dark { border: 2px solid var(--dark); color: var(--dark); background: transparent; }
+.btn-outline-dark:hover { background: var(--dark); color: var(--text-on-dark); }
+
+.tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  border-radius: var(--radius-tag);
+  padding: 4px 12px;
+  font-size: 13px; font-weight: 600;
+  background: var(--bg); color: var(--accent);
+}
+
+.pill {
+  border-radius: var(--radius-tag);
+  padding: 6px 16px; font-weight: 700; font-size: 14px;
+  background: var(--accent); color: #fff;
+}
+
+.input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius-btn);
+  border: 2px solid var(--border);
+  background: #fff;
+  font-size: 15px;
+  color: var(--text);
+  transition: border-color .15s;
+}
+.input:focus { outline: none; border-color: var(--hover); }
+
+/* shimmer button */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius-btn);
+  padding: 14px 24px;
+  font-weight: 700;
+}
+.shimmer::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(110deg, transparent 25%, rgba(255,255,255,.35) 50%, transparent 75%);
+  transform: translateX(-100%);
+  animation: shimmer 2.6s infinite;
+}
+@keyframes shimmer { to { transform: translateX(100%); } }
+
+/* scrollbars: keep the ocean clean */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(33,94,104,.25); border-radius: 99px; }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* wave background for hero */
+.waves {
+  position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0;
+}
+.waves svg { position: absolute; bottom: 0; width: 200%; opacity: .25; }
+.waves .w1 { animation: drift 18s linear infinite; }
+.waves .w2 { animation: drift 26s linear infinite reverse; opacity: .15; }
+@keyframes drift { to { transform: translateX(-50%); } }
+
+/* typing dots */
+.dots { display: inline-flex; gap: 4px; align-items: center; }
+.dots span {
+  width: 7px; height: 7px; border-radius: 50%;
+  animation: bounce 1.2s infinite ease-in-out;
+}
+.dots span:nth-child(2) { animation-delay: .15s; }
+.dots span:nth-child(3) { animation-delay: .3s; }
+@keyframes bounce { 0%,80%,100% { transform: translateY(0); opacity:.5; } 40% { transform: translateY(-6px); opacity:1; } }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.muted { color: var(--text-secondary); }
+.bold-accent { color: var(--accent); font-weight: 700; }

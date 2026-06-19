@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "Perx",
+    "slug": "perx",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#C1D9DE",
+    "splash": {
+      "backgroundColor": "#013137",
+      "resizeMode": "contain"
+    },
+    "ios": { "supportsTablet": false },
+    "android": {
+      "adaptiveIcon": { "backgroundColor": "#013137" }
+    }
+  }
+}
