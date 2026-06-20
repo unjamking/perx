@@ -1,7 +1,6 @@
 import { useState, useCallback } from "react";
-import { View, Text, ScrollView, Pressable, StyleSheet } from "react-native";
+import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import Animated, { FadeInUp, SlideInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { C, R, shadow, fmt, cleanCategory } from "../theme";
@@ -21,11 +20,12 @@ export default function Home({ navigation }) {
   const [notifs, setNotifs] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
 
-  useFocusEffect(useCallback(() => {
+  const reload = useCallback(() => {
     api.feed(EMPLOYEE_ID).then(setFeed);
     api.notifications().then(setNotifs);
     cart.refreshBudget();
-  }, []));
+  }, []);
+  useFocusEffect(reload);
 
   const liveNotifs = notifs.filter((n) => n.live);
 
@@ -56,7 +56,7 @@ export default function Home({ navigation }) {
           </View>
         )}
 
-        {/* Recommended */}
+        {/* Recommended ("For You") */}
         {feed.recommended.length > 0 && (
           <View style={s.section}>
             <SectionHeader title={feed.topCategory ? `${t("forYouCat")} · ${cleanCategory(feed.topCategory)}` : t("recommended")} />
@@ -69,23 +69,6 @@ export default function Home({ navigation }) {
             </ScrollView>
           </View>
         )}
-
-        {/* Featured hero */}
-        {feed.featured.map((o) => (
-          <View key={o.id} style={s.section}>
-            <View style={s.hero}>
-              <Text style={s.heroBadge}>{t("featured")}</Text>
-              <Text style={s.heroTitle}>{o.title}</Text>
-              <Text style={s.heroSub}>{o.provider} · {cleanCategory(o.category)}</Text>
-              <View style={s.heroFoot}>
-                <Text style={s.heroPrice}>{fmt(o.price_all)}</Text>
-                <Pressable style={s.heroBtn} onPress={() => cart.add(o)}>
-                  <Text style={s.heroBtnText}>{t("addToCart")}</Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        ))}
 
         {/* New deals */}
         {feed.deals.length > 0 && (

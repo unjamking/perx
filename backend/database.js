@@ -131,6 +131,11 @@ CREATE TABLE IF NOT EXISTS swipes (
   action TEXT NOT NULL, created_at TEXT DEFAULT (datetime('now')),
   UNIQUE(employee_id, offer_id)
 );
+-- Landing-page leads: demo requests + provider sign-ups from the marketing site.
+CREATE TABLE IF NOT EXISTS leads (
+  id INTEGER PRIMARY KEY, kind TEXT, name TEXT, email TEXT,
+  company TEXT, phone TEXT, created_at TEXT DEFAULT (datetime('now'))
+);
 `);
 
 // Lightweight migrations: add columns to pre-existing tables (CREATE IF NOT EXISTS
@@ -303,11 +308,13 @@ function seed() {
   const insChal = db.prepare(`INSERT INTO challenges (company_id,title,description,category,bonus_all,deadline)
     VALUES (1,?,?,?,?,?)`);
   const wellnessChallenge = insChal.run(
-    "Wellness Month", "Complete 3 fitness sessions, earn 2,000 ALL bonus each", "💪 Fitness", 2000, "2026-07-19").lastInsertRowid;
+    "Ship the Quarter", "Close all assigned sprint tickets before the deadline.", "Performance", 2000, "2026-07-19").lastInsertRowid;
   const stepsChallenge = insChal.run(
-    "10k Steps Daily", "Hit 10,000 steps a day for two weeks as a team.", "💪 Fitness", 1500, "2026-07-05").lastInsertRowid;
+    "Customer Champion", "Maintain a 90%+ customer satisfaction score for two weeks.", "Performance", 1500, "2026-07-05").lastInsertRowid;
   const mindfulChallenge = insChal.run(
-    "Mindful June", "Book a wellness or spa session this month.", "🧘 Wellness", 1000, "2026-06-30").lastInsertRowid;
+    "Mentor a Teammate", "Onboard or pair-program with a colleague this month.", "Collaboration", 1000, "2026-06-30").lastInsertRowid;
+  insChal.run("Zero-Bug Sprint", "Finish a sprint with no escaped defects.", "Quality", 1800, "2026-07-12");
+  insChal.run("Idea of the Month", "Submit a process improvement that gets adopted.", "Innovation", 2500, "2026-07-31");
 
   // Challenge participation (real signal for sentiment + completion bars)
   const insProg = db.prepare("INSERT INTO challenge_progress (challenge_id,employee_id,completed) VALUES (?,?,?)");
@@ -432,7 +439,7 @@ function seed() {
   // ── Employer: recruitment perk package (public) ──
   const insRecruit = db.prepare("INSERT INTO recruitment_perks (company_id,title,description,highlight) VALUES (1,?,?,?)");
   insRecruit.run("Flexible Benefits Wallet", "Up to 12,000 ALL/month to spend on fitness, food, wellness, travel & more.", 1);
-  insRecruit.run("Wellness Days", "Monthly spa & wellness allowance plus team fitness challenges.", 1);
+  insRecruit.run("Performance Bonuses", "Monthly wellness allowance plus credit rewards for hitting performance goals.", 1);
   insRecruit.run("Learning Budget", "Annual education pass — courses, certifications, conferences.", 0);
   insRecruit.run("Peer Recognition", "Gift reward credits to colleagues for great work.", 0);
 

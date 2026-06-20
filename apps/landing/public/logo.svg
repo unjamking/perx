@@ -1,0 +1,17 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100" height="100" rx="28" fill="#013137" />
+  <defs>
+    <linearGradient id="logoPGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#A7F3D0" />
+      <stop offset="100%" stopColor="#297376" />
+    </linearGradient>
+  </defs>
+  <path 
+    d="M33 22h24c13.25 0 24 10.75 24 24S70.25 70 57 70H45v18c0 1.1-.9 2-2 2h-8c-1.1 0-2-.9-2-2V24c0-1.1.9-2 2-2zm12 36h12c6.63 0 12-5.37 12-12s-5.37-12-12-12H45v24z" 
+    fill="url(#logoPGrad)" 
+  />
+  <path 
+    d="M48 68q0 6 6 6q-6 0 0 6q0-6-6-6q6 0 0-6" 
+    fill="#A7F3D0" 
+  />
+</svg>

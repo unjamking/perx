@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Dimensions, Image } from "react-native";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
 import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming, withRepeat, withDelay,
-  runOnJS, interpolate, FadeIn, FadeInUp, FadeInDown,
+  runOnJS, interpolate, FadeIn, FadeInUp, FadeInDown, Extrapolation,
 } from "react-native-reanimated";
 
 const SPRING = { damping: 20, stiffness: 220, mass: 0.8 };
@@ -79,7 +79,7 @@ export default function Perxify() {
           <View style={s.deck}>
             {/* Render bottom→top, keyed by id. As the top card leaves and i++ each
                 card's depth drops by 1 and springs forward — no remount, seamless. */}
-            {[2, 1, 0].map((dpt) => {
+            {[2, 1, 0, -1].map((dpt) => {
               const card = deck[i + dpt];
               if (!card) return null;
               return (
@@ -127,10 +127,10 @@ function Loader({ t }) {
 
 // Center burst: the action's icon pops big then fades. Plays on every swipe.
 const BURST = {
-  like: { icon: "heart", color: "#2bb673" },
-  superlike: { icon: "star", color: "#f0b429" },
-  dislike: { icon: "close-circle", color: "#e0537b" },
-  skip: { icon: "play-skip-forward-circle", color: C.surface },
+  like: { icon: "heart", color: "#2bb673", bgColor: "rgba(43, 182, 115, 0.12)" },
+  superlike: { icon: "star", color: "#f0b429", bgColor: "rgba(240, 180, 41, 0.12)" },
+  dislike: { icon: "close", color: "#e0537b", bgColor: "rgba(224, 83, 123, 0.12)" },
+  skip: { icon: "play-skip-forward", color: "#ffffff", bgColor: "rgba(255, 255, 255, 0.12)" },
 };
 
 // Owns its own state so triggering a burst (via ref.play) does NOT re-render the
@@ -139,18 +139,22 @@ const ActionBurst = forwardRef(function ActionBurst(_, ref) {
   const [action, setAction] = useState(null);
   const v = useSharedValue(0);
   useImperativeHandle(ref, () => ({
-    play(a) { setAction(a); v.value = 0; v.value = withTiming(1, { duration: 420 }); },
+    play(a) { setAction(a); v.value = 0; v.value = withTiming(1, { duration: 550 }); },
   }), []);
   const style = useAnimatedStyle(() => ({
-    opacity: interpolate(v.value, [0, 0.25, 1], [0, 1, 0]),
-    transform: [{ scale: interpolate(v.value, [0, 0.4, 1], [0.5, 1.0, 1.12]) }],
+    opacity: interpolate(v.value, [0, 0.15, 0.65, 1], [0, 1, 1, 0]),
+    transform: [
+      { scale: interpolate(v.value, [0, 0.18, 0.65, 1], [0.4, 1.15, 1.0, 0.85]) },
+      { translateY: interpolate(v.value, [0, 1], [0, -70]) },
+      { rotate: `${interpolate(v.value, [0, 1], [0, -8])}deg` },
+    ],
   }));
   if (!action) return null;
   const b = BURST[action] || BURST.like;
   return (
     <Animated.View pointerEvents="none" style={s.burst}>
-      <Animated.View style={style}>
-        <Ionicons name={b.icon} size={120} color={b.color} />
+      <Animated.View style={[s.burstBadge, { backgroundColor: b.bgColor, borderColor: b.color }, style]}>
+        <Ionicons name={b.icon} size={42} color={b.color} />
       </Animated.View>
     </Animated.View>
   );
@@ -165,20 +169,31 @@ const DeckCard = forwardRef(function DeckCard({ offer, depth, onSwiped, t }, ref
   const x = useSharedValue(0);
   const y = useSharedValue(0);
   const d = useSharedValue(depth);
-  useEffect(() => { d.value = withSpring(depth, SPRING); }, [depth]);
+  useEffect(() => {
+    d.value = withSpring(depth, SPRING);
+  }, [depth]);
 
   const finish = useCallback((action) => onSwiped(offer, action), [offer, onSwiped]);
 
-  // Exit uses withTiming (deterministic, fast) not spring. A spring overshoots and
-  // settles slowly, so the finish callback fired late and collided with the next
-  // card's promotion + re-render — that was the glitch. 180ms linear-ish is clean.
-  const EXIT = { duration: 180 };
+  const EXIT_DURATION = 220;
   useImperativeHandle(ref, () => ({
     fling(action) {
-      if (action === "superlike") y.value = withTiming(-height, EXIT, () => runOnJS(finish)("superlike"));
-      else if (action === "like") x.value = withTiming(width * 1.5, EXIT, () => runOnJS(finish)("like"));
-      else if (action === "dislike") x.value = withTiming(-width * 1.5, EXIT, () => runOnJS(finish)("dislike"));
-      else y.value = withTiming(height, EXIT, () => runOnJS(finish)("skip"));
+      if (action === "superlike") {
+        y.value = withTiming(-height, { duration: EXIT_DURATION });
+        finish("superlike");
+      }
+      else if (action === "like") {
+        x.value = withTiming(width * 1.5, { duration: EXIT_DURATION });
+        finish("like");
+      }
+      else if (action === "dislike") {
+        x.value = withTiming(-width * 1.5, { duration: EXIT_DURATION });
+        finish("dislike");
+      }
+      else {
+        y.value = withTiming(height, { duration: EXIT_DURATION });
+        finish("skip");
+      }
     },
   }), [finish]);
 
@@ -188,13 +203,16 @@ const DeckCard = forwardRef(function DeckCard({ offer, depth, onSwiped, t }, ref
     .onEnd((e) => {
       "worklet";
       if (e.translationY < -SWIPE_X && Math.abs(e.translationX) < SWIPE_X) {
-        y.value = withTiming(-height, EXIT, () => runOnJS(finish)("superlike"));
+        y.value = withTiming(-height, { duration: EXIT_DURATION });
+        runOnJS(finish)("superlike");
       } else if (e.translationX > SWIPE_X) {
-        y.value = withTiming(e.translationY, EXIT);
-        x.value = withTiming(width * 1.5, EXIT, () => runOnJS(finish)("like"));
+        y.value = withTiming(y.value, { duration: EXIT_DURATION });
+        x.value = withTiming(width * 1.5, { duration: EXIT_DURATION });
+        runOnJS(finish)("like");
       } else if (e.translationX < -SWIPE_X) {
-        y.value = withTiming(e.translationY, EXIT);
-        x.value = withTiming(-width * 1.5, EXIT, () => runOnJS(finish)("dislike"));
+        y.value = withTiming(y.value, { duration: EXIT_DURATION });
+        x.value = withTiming(-width * 1.5, { duration: EXIT_DURATION });
+        runOnJS(finish)("dislike");
       } else {
         x.value = withSpring(0, SPRING);
         y.value = withSpring(0, SPRING);
@@ -204,18 +222,23 @@ const DeckCard = forwardRef(function DeckCard({ offer, depth, onSwiped, t }, ref
   // Compose depth (stack position) with swipe offset (gesture). Both live here so
   // there's no remount when a behind card becomes the top card.
   const cardStyle = useAnimatedStyle(() => ({
-    zIndex: 10 - d.value,
-    opacity: interpolate(d.value, [0, 1, 2], [1, 0.6, 0.32]),
+    zIndex: Math.round(10 - d.value),
+    opacity: interpolate(
+      d.value,
+      [-1, 0, 1, 2],
+      [1, 1, 0.6, 0.32],
+      Extrapolation.CLAMP
+    ),
     transform: [
       { translateX: x.value },
-      { translateY: y.value + d.value * DEPTH.y },
+      { translateY: y.value + interpolate(d.value, [-1, 0, 1, 2], [0, 0, DEPTH.y, DEPTH.y * 2], Extrapolation.CLAMP) },
       { rotate: `${interpolate(x.value, [-width, width], [-8, 8])}deg` },
-      { scale: 1 - d.value * DEPTH.scale },
+      { scale: interpolate(d.value, [-1, 0, 1, 2], [1, 1, 1 - DEPTH.scale, 1 - DEPTH.scale * 2], Extrapolation.CLAMP) },
     ],
   }));
-  const likeStyle = useAnimatedStyle(() => ({ opacity: depth === 0 ? interpolate(x.value, [0, SWIPE_X], [0, 1], "clamp") : 0 }));
-  const nopeStyle = useAnimatedStyle(() => ({ opacity: depth === 0 ? interpolate(x.value, [-SWIPE_X, 0], [1, 0], "clamp") : 0 }));
-  const superStyle = useAnimatedStyle(() => ({ opacity: depth === 0 ? interpolate(y.value, [-SWIPE_X, 0], [1, 0], "clamp") : 0 }));
+  const likeStyle = useAnimatedStyle(() => ({ opacity: d.value <= 0 ? interpolate(x.value, [0, SWIPE_X], [0, 1], Extrapolation.CLAMP) : 0 }));
+  const nopeStyle = useAnimatedStyle(() => ({ opacity: d.value <= 0 ? interpolate(x.value, [-SWIPE_X, 0], [1, 0], Extrapolation.CLAMP) : 0 }));
+  const superStyle = useAnimatedStyle(() => ({ opacity: d.value <= 0 ? interpolate(y.value, [-SWIPE_X, 0], [1, 0], Extrapolation.CLAMP) : 0 }));
 
   // Glow border per direction — green right, red left, gold up. Border + shadow
   // intensify with drag and breathe via `pulse` once near commit (shine effect).
@@ -229,15 +252,15 @@ const DeckCard = forwardRef(function DeckCard({ offer, depth, onSwiped, t }, ref
   };
   const glowLike = useAnimatedStyle(() => {
     const up = -y.value > Math.abs(x.value);
-    return glowFrom(depth === 0 && !up ? interpolate(x.value, [0, SWIPE_X * 1.2], [0, 1], "clamp") : 0);
+    return glowFrom(d.value <= 0 && !up ? interpolate(x.value, [0, SWIPE_X * 1.2], [0, 1], Extrapolation.CLAMP) : 0);
   });
   const glowNope = useAnimatedStyle(() => {
     const up = -y.value > Math.abs(x.value);
-    return glowFrom(depth === 0 && !up ? interpolate(x.value, [-SWIPE_X * 1.2, 0], [1, 0], "clamp") : 0);
+    return glowFrom(d.value <= 0 && !up ? interpolate(x.value, [-SWIPE_X * 1.2, 0], [1, 0], Extrapolation.CLAMP) : 0);
   });
   const glowSuper = useAnimatedStyle(() => {
     const up = -y.value > Math.abs(x.value);
-    return glowFrom(depth === 0 && up ? interpolate(y.value, [-SWIPE_X * 1.2, 0], [1, 0], "clamp") : 0);
+    return glowFrom(d.value <= 0 && up ? interpolate(y.value, [-SWIPE_X * 1.2, 0], [1, 0], Extrapolation.CLAMP) : 0);
   });
 
   return (
@@ -341,7 +364,20 @@ const s = StyleSheet.create({
   sub: { color: C.textOnDark, opacity: 0.8, fontSize: 13, marginTop: 2 },
   muted: { color: C.textOnDark, opacity: 0.7 },
   deck: { flex: 1, alignItems: "center", justifyContent: "center" },
-  burst: { position: "absolute", alignItems: "center", justifyContent: "center" },
+  burst: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0, alignItems: "center", justifyContent: "center", zIndex: 100 },
+  burstBadge: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
   cardWrap: { position: "absolute", width: width - 48, height: "82%", maxHeight: 520 },
   card: { flex: 1, backgroundColor: C.card, borderRadius: 28, overflow: "hidden",
     shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6 },

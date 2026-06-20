@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { View, Text, ScrollView, Pressable, StyleSheet, Switch, Modal, TextInput } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import Animated, { FadeInUp } from "react-native-reanimated";
+import Animated, { FadeInRight } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { C, R, shadow, fmt, cleanCategory } from "../theme";
@@ -224,13 +224,7 @@ function GiftModal({ open, colleagues, left, onClose, onDone }) {
 
         {/* who */}
         <Text style={s.giftLabel}>{t("giftTo")}</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
-          {colleagues.map((c) => (
-            <Bounce key={c.id} onPress={() => setTo(c.id)} style={[s.colChip, to === c.id && s.colChipOn]}>
-              <Text style={[s.colChipText, to === c.id && { color: "#fff" }]}>{c.name}</Text>
-            </Bounce>
-          ))}
-        </ScrollView>
+        <ColleaguePicker colleagues={colleagues} value={to} onPick={setTo} />
 
         {/* what */}
         {kind === "credit" && (
@@ -265,6 +259,22 @@ function GiftModal({ open, colleagues, left, onClose, onDone }) {
     </Modal>
   );
 }
+
+// Staggered colleague chips — each slides in just after the last for a smooth cascade.
+function ColleaguePicker({ colleagues, value, onPick }) {
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
+      {colleagues.map((c, i) => (
+        <Animated.View key={c.id} entering={FadeInRight.delay(i * 40).springify().damping(16)}>
+          <Bounce onPress={() => onPick(c.id)} style={[s.colChip, value === c.id && s.colChipOn]}>
+            <Text style={[s.colChipText, value === c.id && { color: "#fff" }]}>{c.name}</Text>
+          </Bounce>
+        </Animated.View>
+      ))}
+    </ScrollView>
+  );
+}
+
 
 const s = StyleSheet.create({
   header: { alignItems: "center", paddingTop: 16, paddingBottom: 8 },

@@ -3,10 +3,20 @@ import { View, Text, ScrollView, Pressable, StyleSheet } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import Animated, { FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { C, R, shadow, fmt } from "../theme";
 import { ProgressBar, Bounce, ScreenFade } from "../components";
 import { api, EMPLOYEE_ID } from "../api";
 import { useLang } from "../i18n";
+
+const ACHIEVEMENT_ICONS = {
+  first_redeem: { name: "sparkles", color: "#e0537b" },
+  explorer: { name: "compass", color: "#2bb673" },
+  challenger: { name: "trophy", color: "#f0b429" },
+  generous: { name: "gift", color: "#8a5cf5" },
+  reviewer: { name: "star", color: "#3182ce" },
+  power_user: { name: "flame", color: "#dd6b20" },
+};
 
 export default function Challenges() {
   const { t } = useLang();
@@ -80,13 +90,29 @@ export default function Challenges() {
         <View>
           <Text style={s.h3}>{t("achievementsRewards")}</Text>
           <View style={s.badgeGrid}>
-            {achievements.map((a) => (
-              <View key={a.key} style={[s.badge, !a.unlocked && s.badgeLocked]}>
-                <Text style={{ fontSize: 30, opacity: a.unlocked ? 1 : 0.35 }}>{a.emoji}</Text>
-                <Text style={[s.badgeTitle, !a.unlocked && { color: C.textSecondary }]}>{a.title}</Text>
-                <Text style={s.badgeHint}>{a.unlocked ? t("unlocked") : (a.progress || a.hint)}</Text>
-              </View>
-            ))}
+            {achievements.map((a) => {
+              const iconCfg = ACHIEVEMENT_ICONS[a.key] || { name: "ribbon", color: C.accent };
+              const iconColor = a.unlocked ? iconCfg.color : C.surface;
+              const iconBg = a.unlocked ? `${iconCfg.color}15` : "rgba(33,94,104,0.06)";
+              return (
+                <Bounce key={a.key} style={[s.badge, !a.unlocked && s.badgeLocked]} scale={0.96}>
+                  <View style={[s.iconCircle, { backgroundColor: iconBg }]}>
+                    <Ionicons
+                      name={a.unlocked ? iconCfg.name : `${iconCfg.name}-outline`}
+                      size={26}
+                      color={iconColor}
+                    />
+                    {!a.unlocked && (
+                      <View style={s.lockBadge}>
+                        <Ionicons name="lock-closed" size={10} color="#fff" />
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[s.badgeTitle, !a.unlocked && { color: C.textSecondary }]}>{a.title}</Text>
+                  <Text style={s.badgeHint}>{a.unlocked ? t("unlocked") : (a.progress || a.hint)}</Text>
+                </Bounce>
+              );
+            })}
           </View>
         </View>
       </ScrollView>
@@ -123,4 +149,25 @@ const s = StyleSheet.create({
   badgeLocked: { backgroundColor: "rgba(255,255,255,0.5)" },
   badgeTitle: { fontWeight: "700", fontSize: 12, color: C.text, textAlign: "center" },
   badgeHint: { fontSize: 10, color: C.textSecondary, textAlign: "center" },
+  iconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 6,
+  },
+  lockBadge: {
+    position: "absolute",
+    bottom: -2,
+    right: -2,
+    backgroundColor: C.surface,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: "#fff",
+  },
 });

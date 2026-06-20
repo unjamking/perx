@@ -121,6 +121,22 @@ app.post("/api/auth/login", (req, res) => {
   res.json({ token: sign(u), user: publicUser(u) });
 });
 
+// Public: landing-page lead capture (demo requests + provider sign-ups). No auth —
+// it's a marketing form. Validate + cap lengths since this is an open trust boundary.
+app.post("/api/leads", (req, res) => {
+  const clip = (v, n) => String(v ?? "").trim().slice(0, n);
+  const kind = clip(req.body.kind, 20) || "demo";
+  const name = clip(req.body.name, 120);
+  const email = clip(req.body.email, 160);
+  const company = clip(req.body.company, 160);
+  const phone = clip(req.body.phone, 40);
+  if (!name || (!email && !phone)) return res.status(400).json({ error: "name and a contact method required" });
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: "invalid email" });
+  db.prepare("INSERT INTO leads (kind,name,email,company,phone) VALUES (?,?,?,?,?)")
+    .run(kind, name, email, company, phone);
+  res.json({ ok: true });
+});
+
 // ─────────────── AUTH GATE ───────────────
 // Everything below /api requires a valid token. Login is the only public route (above).
 // Role-specific prefixes enforce role; ownership is derived from the token, not the client.
@@ -653,6 +669,11 @@ app.get("/api/hr/gifts", (req, res) => {
     FROM gifts g JOIN users uf ON uf.id = g.from_employee
     JOIN users ut ON ut.id = g.to_employee
     WHERE uf.company_id = ? ORDER BY g.created_at DESC`).all(company_id));
+});
+
+// HR: landing-page leads (demo requests + provider sign-ups).
+app.get("/api/hr/leads", (req, res) => {
+  res.json(db.prepare("SELECT * FROM leads ORDER BY created_at DESC").all());
 });
 
 app.post("/api/gifts", (req, res) => {

@@ -2,7 +2,7 @@ import "react-native-gesture-handler";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { View, ActivityIndicator, Pressable, StyleSheet } from "react-native";
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { NavigationContainer, useNavigation } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -70,9 +70,14 @@ const tab = StyleSheet.create({
 
 function Tabs() {
   const { t } = useLang();
+  const [activeTab, setActiveTab] = useState("Home");
   return (
     <View style={{ flex: 1 }}>
       <Tab.Navigator
+        screenListeners={{ state: (e) => {
+          const routes = e.data.state.routes;
+          setActiveTab(routes[e.data.state.index].name);
+        } }}
         screenOptions={({ route }) => ({
           headerShown: false,
           tabBarActiveTintColor: C.surface,
@@ -89,7 +94,7 @@ function Tabs() {
         <Tab.Screen name="Challenges" component={Challenges} />
         <Tab.Screen name="Profile" component={ProfileStack} />
       </Tab.Navigator>
-      <ConciergeFab />
+      {activeTab !== "Perxify" && <ConciergeFab />}
     </View>
   );
 }
