@@ -1140,13 +1140,30 @@ app.get("/api/employee/nearby", (req, res) => {
 // float up so the deck keeps feeding what they're into.
 app.get("/api/perxify/deck", requireAuth(), (req, res) => {
   const eid = req.authUser.id;
-  res.json(db.prepare(`SELECT ${empOfferCols},
-      (SELECT COALESCE(SUM(CASE action WHEN 'superlike' THEN 3 WHEN 'like' THEN 1 WHEN 'dislike' THEN -2 ELSE 0 END),0)
-       FROM swipes s WHERE s.employee_id=? AND s.category=o.category) AS cat_score
+  const catScore = `(SELECT COALESCE(SUM(CASE action WHEN 'superlike' THEN 3 WHEN 'like' THEN 1 WHEN 'dislike' THEN -2 ELSE 0 END),0)
+       FROM swipes s WHERE s.employee_id=? AND s.category=o.category) AS cat_score`;
+  // First pass: offers never swiped.
+  let deck = db.prepare(`SELECT ${empOfferCols}, ${catScore}
     FROM offers o JOIN providers p ON p.id = o.provider_id
     WHERE o.is_active=1
       AND o.id NOT IN (SELECT offer_id FROM swipes WHERE employee_id=?)
-    ORDER BY cat_score DESC, o.is_featured DESC, RANDOM() LIMIT 30`).all(eid, eid));
+    ORDER BY cat_score DESC, o.is_featured DESC, RANDOM() LIMIT 30`).all(eid, eid);
+  // Recycle once everything's been seen: re-show offers they didn't dislike, so
+  // "Swipe more" always has cards instead of an empty deck.
+  if (deck.length === 0) {
+    deck = db.prepare(`SELECT ${empOfferCols}, ${catScore}
+      FROM offers o JOIN providers p ON p.id = o.provider_id
+      WHERE o.is_active=1
+        AND o.id NOT IN (SELECT offer_id FROM swipes WHERE employee_id=? AND action='dislike')
+      ORDER BY cat_score DESC, o.is_featured DESC, RANDOM() LIMIT 30`).all(eid, eid);
+  }
+  // Last resort (everything disliked): show the full active catalog.
+  if (deck.length === 0) {
+    deck = db.prepare(`SELECT ${empOfferCols}, ${catScore}
+      FROM offers o JOIN providers p ON p.id = o.provider_id
+      WHERE o.is_active=1 ORDER BY RANDOM() LIMIT 30`).all(eid);
+  }
+  res.json(deck);
 });
 
 // Record a swipe. Upsert so re-swiping the same card just updates the action.
@@ -1245,6 +1262,24 @@ app.post("/api/employee/challenges/:id/join", (req, res) => {
   const exists = db.prepare("SELECT id FROM challenge_progress WHERE challenge_id=? AND employee_id=?").get(req.params.id, employee_id);
   if (!exists) db.prepare("INSERT INTO challenge_progress (challenge_id,employee_id,completed) VALUES (?,?,0)").run(req.params.id, employee_id);
   res.json({ ok: true });
+});
+
+// Complete a joined challenge → mark done + award its bonus as spendable credit.
+app.post("/api/employee/challenges/:id/complete", (req, res) => {
+  const { employee_id } = req.body;
+  if (!employee_id) return res.status(400).json({ error: "employee_id required" });
+  const prog = db.prepare("SELECT completed FROM challenge_progress WHERE challenge_id=? AND employee_id=?").get(req.params.id, employee_id);
+  if (!prog) return res.status(400).json({ error: "join the challenge first" });
+  if (prog.completed === 1) return res.json({ ok: true, already: true });
+  const ch = db.prepare("SELECT bonus_all FROM challenges WHERE id=?").get(req.params.id);
+  if (!ch) return res.status(404).json({ error: "challenge not found" });
+  const tx = db.transaction(() => {
+    db.prepare("UPDATE challenge_progress SET completed=1 WHERE challenge_id=? AND employee_id=?").run(req.params.id, employee_id);
+    // Reward: bonus credit added to the employee's budget.
+    if (ch.bonus_all) db.prepare("UPDATE users SET budget_total = budget_total + ? WHERE id=?").run(ch.bonus_all, employee_id);
+  });
+  tx();
+  res.json({ ok: true, bonus_all: ch.bonus_all });
 });
 
 // Achievements derived from real activity (no static badges).

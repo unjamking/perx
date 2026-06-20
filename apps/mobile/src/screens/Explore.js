@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { C, R, shadow, fmt } from "../theme";
-import { OfferCard, Bounce, ScreenFade } from "../components";
+import { OfferCard, Bounce, ScreenFade, CartPill } from "../components";
 import { api, EMPLOYEE_ID } from "../api";
 import { useCart } from "../CartContext";
 import CartSheet from "../CartSheet";
@@ -19,7 +19,7 @@ if (Platform.OS !== "web") {
   Marker = maps.Marker;
 }
 
-const CATS = ["All", "💪 Fitness", "🍽️ Food", "🧘 Wellness", "✈️ Travel", "📱 Telecom", "📚 Education"];
+const CATS = ["All", "Fitness", "Food", "Wellness", "Travel", "Telecom", "Education"];
 const MODES = ["forYou", "browse", "nearby"];
 
 export default function Explore({ navigation }) {
@@ -113,14 +113,7 @@ export default function Explore({ navigation }) {
         </Animated.View>
       )}
 
-      {cart.items.length > 0 && (
-        <Animated.View entering={SlideInDown} style={s.floatCart}>
-          <Pressable style={s.floatCartBtn} onPress={() => setCartOpen(true)}>
-            <Ionicons name="cart" size={18} color="#fff" />
-            <Text style={s.floatCartText}>{t("cart")} ({cart.items.length}) — {fmt(cart.total)}</Text>
-          </Pressable>
-        </Animated.View>
-      )}
+      <CartPill onPress={() => setCartOpen(true)} />
       </ScreenFade>
       <CartSheet open={cartOpen} onClose={() => setCartOpen(false)} />
     </SafeAreaView>
@@ -232,10 +225,10 @@ function Nearby({ cart }) {
           return (
             <Animated.View key={p.provider_id} layout={Layout.springify()}>
             <Bounce style={s.nearRow} scale={0.97} onPress={() => setOpenProvider(p.provider_id)}>
-              <Text style={{ fontSize: 28 }}>{p.provider_emoji}</Text>
+              <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: "rgba(33,94,104,0.08)", alignItems: "center", justifyContent: "center" }} />
               <View style={{ flex: 1 }}>
                 <Text style={{ fontWeight: "700", color: C.text }}>{p.provider}</Text>
-                <Text style={s.muted}>📍 {p.address}</Text>
+                <Text style={s.muted}>{p.address}</Text>
                 {p.km != null && <Text style={s.distChip}>{p.km.toFixed(1)} {t("kmAway")}</Text>}
               </View>
               <View style={{ alignItems: "center", gap: 2 }}>
@@ -267,11 +260,11 @@ function ProviderSheet({ provider, offers, cart, onClose }) {
       <Pressable style={s.backdrop} onPress={onClose} />
       <View style={s.sheet}>
         <View style={s.handle} />
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 4 }}>
-          <Text style={{ fontSize: 30 }}>{provider.provider_emoji}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 4 }}>
+          <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: "rgba(33,94,104,0.08)" }} />
           <View style={{ flex: 1 }}>
             <Text style={s.sheetTitle}>{provider.provider}</Text>
-            <Text style={s.muted}>📍 {provider.address}{provider.km != null ? ` · ${provider.km.toFixed(1)} km` : ""}</Text>
+            <Text style={s.muted}>{provider.address}{provider.km != null ? ` · ${provider.km.toFixed(1)} km` : ""}</Text>
           </View>
         </View>
         <ScrollView style={{ maxHeight: 420 }} contentContainerStyle={{ gap: 10, paddingVertical: 8 }}>

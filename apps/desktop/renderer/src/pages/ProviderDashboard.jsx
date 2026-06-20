@@ -152,7 +152,7 @@ function Overview({ itemVariants }) {
               <div className={s.stratDetail}>{opt.tips[0].text}</div>
             </div>
           </div>
-        ) : <Empty msg="Catalog looks well-optimized. 🎉" />}
+        ) : <Empty msg="Catalog looks well-optimized." />}
       </motion.div>
     </>
   );
@@ -177,7 +177,7 @@ function AIOptimization({ itemVariants }) {
           </div>
         </motion.div>
       ))}
-      {opt.tips.length === 0 && <Empty msg="No suggestions — catalog well-tuned. 🎉" />}
+      {opt.tips.length === 0 && <Empty msg="No suggestions — catalog well-tuned." />}
     </motion.div>
   );
 }
@@ -275,7 +275,7 @@ function Offers({ onToast, itemVariants }) {
               </div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {dealLive && <span className={s.queryChip} style={{ color: "#dc3545" }}>⏰ Deal ends {o.deal_ends}</span>}
-                {o.target_group && <span className={s.queryChip}>🎯 {o.target_group}</span>}
+                {o.target_group && <span className={s.queryChip}>{o.target_group}</span>}
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 4, alignItems: "center" }}>
                 <button className={s.iconStar} onClick={() => setEdit(o)} title="Edit"><Pencil size={16} color="var(--accent)" /></button>
@@ -608,8 +608,8 @@ function Profile({ onToast, itemVariants }) {
         <h2 style={{ fontSize: 22, fontWeight: 800, color: "var(--dark)" }}>{p.company_name}</h2>
         <div style={{ color: "var(--accent)", fontWeight: 700, fontSize: 14 }}>{p.tagline}</div>
         <p style={{ fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.6 }}>{p.description}</p>
-        <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>📍 {p.address}</div>
-        <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>📞 {p.phone}</div>
+        <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>{p.address}</div>
+        <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>{p.phone}</div>
         <div className={s.matchTagWarn}>{p.category}</div>
       </div>
     </motion.div>

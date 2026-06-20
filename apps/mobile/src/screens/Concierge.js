@@ -87,7 +87,7 @@ function Bubble({ m, onAdd }) {
             <Text style={s.muted}>{o.provider} · {fmt(o.price_all)}</Text>
             <Text style={[s.muted, { marginTop: 4 }]}>{o.reason}</Text>
           </View>
-          <Pressable style={s.plus} onPress={() => onAdd({ id: o.offer_id, title: o.title, provider: o.provider, price_all: o.price_all, category: o.category || "🧘 Wellness" })}>
+          <Pressable style={s.plus} onPress={() => onAdd({ id: o.offer_id, title: o.title, provider: o.provider, price_all: o.price_all, category: o.category || "Wellness" })}>
             <Ionicons name="add" size={18} color="#fff" />
           </Pressable>
         </View>

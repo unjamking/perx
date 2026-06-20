@@ -2,7 +2,7 @@ import { useState } from "react";
 import { View, Text, Pressable, StyleSheet, Modal, FlatList } from "react-native";
 import Animated, { Layout, FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
-import { C, R, fmt } from "./theme";
+import { C, R, fmt, cleanCategory } from "./theme";
 import { PrimaryButton, Bounce } from "./components";
 import { useCart } from "./CartContext";
 import { useLang } from "./i18n";
@@ -32,7 +32,7 @@ export default function CartSheet({ open, onClose }) {
           ListEmptyComponent={<Text style={s.muted}>{t("cartEmpty")}</Text>}
           renderItem={({ item }) => (
             <Animated.View layout={Layout.springify()} entering={FadeInRight} exiting={FadeOutLeft} style={s.cartRow}>
-              <Text style={{ fontSize: 22 }}>{item.category.split(" ")[0]}</Text>
+              <Text style={{ fontSize: 22 }}>{cleanCategory(item.category).split(" ")[0]}</Text>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontWeight: "600" }}>{item.title}</Text>
                 <Text style={s.muted}>{item.provider}</Text>

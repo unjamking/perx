@@ -168,7 +168,7 @@ function Overview({ itemVariants }) {
               <div className={s.stratDetail}>{strategy.recommendations[0].detail}</div>
             </div>
           </div>
-        ) : <Empty msg="No recommendations — benefits program is well-tuned. 🎉" />}
+        ) : <Empty msg="No recommendations — benefits program is well-tuned." />}
       </motion.div>
     </>
   );
@@ -197,7 +197,7 @@ function AIStrategy({ itemVariants }) {
           </div>
         </motion.div>
       ))}
-      {data.recommendations.length === 0 && <Empty msg="No recommendations — program well-tuned. 🎉" />}
+      {data.recommendations.length === 0 && <Empty msg="No recommendations — program well-tuned." />}
     </motion.div>
   );
 }
@@ -263,7 +263,7 @@ function Approvals({ onToast, itemVariants }) {
   }
   return (
     <motion.div variants={itemVariants} style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 720 }}>
-      {pending.length === 0 && <Empty msg="No pending approvals. All caught up. 🌊" />}
+      {pending.length === 0 && <Empty msg="No pending approvals. All caught up." />}
       <AnimatePresence>
         {pending.map((sel) => <ApprovalRow key={sel.id} sel={sel} onApprove={approve} onReject={reject} done={done[sel.id]} />)}
       </AnimatePresence>
@@ -401,7 +401,7 @@ function BudgetManagement({ itemVariants }) {
             <tbody>
               {offices.map((o) => (
                 <tr key={o.id}>
-                  <td style={{ fontWeight: 600 }}>{o.is_hq ? "🏛️ " : ""}{o.country} · {o.city}</td>
+                  <td style={{ fontWeight: 600 }}>{o.is_hq ? "HQ · " : ""}{o.country} · {o.city}</td>
                   <td>{o.headcount}</td>
                   <td>{o.budget_per_employee.toLocaleString()} {o.currency}</td>
                   <td style={{ fontWeight: 700, color: "var(--accent)" }}>{Math.round(officeBudget(o)).toLocaleString()} ALL</td>
@@ -510,7 +510,7 @@ function Partnerships({ mode, onToast, itemVariants }) {
             )}
           </motion.div>
         ))}
-        {shown.length === 0 && <Empty msg={mode === "active" ? "No active partnerships yet." : "All providers partnered. 🎉"} />}
+        {shown.length === 0 && <Empty msg={mode === "active" ? "No active partnerships yet." : "All providers partnered."} />}
       </div>
     </motion.div>
   );
@@ -550,8 +550,8 @@ function Branding({ onToast, itemVariants }) {
         <h2 style={{ fontSize: 22, fontWeight: 800, color: "var(--dark)" }}>{c.name}</h2>
         <div style={{ color: c.brand_color, fontWeight: 700, fontSize: 14 }}>{c.tagline}</div>
         <p style={{ fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.6 }}>{c.mission}</p>
-        <div className={s.brandPerks} style={{ background: c.brand_color }}>★ {c.perks_headline}</div>
-        <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>⭐ {c.glassdoor_rating} Glassdoor rating</div>
+        <div className={s.brandPerks} style={{ background: c.brand_color }}>{c.perks_headline}</div>
+        <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>{c.glassdoor_rating} Glassdoor rating</div>
       </div>
     </motion.div>
   );
@@ -581,7 +581,7 @@ function Recruitment({ itemVariants }) {
         {perks.map((p) => (
           <div key={p.id} className={s.challengeCard}>
             <div className={s.challengeTop}>
-              <div className={s.challengeTitle}>{p.highlight ? "★ " : ""}{p.title}</div>
+              <div className={s.challengeTitle}>{p.title}</div>
               <button className={s.iconStar} onClick={() => remove(p.id)} title="Remove"><Trash2 size={16} color="#dc3545" /></button>
             </div>
             <div className={s.challengeDesc}>{p.description}</div>
@@ -634,7 +634,7 @@ function MultiCountry({ itemVariants }) {
         {offices.map((o) => (
           <motion.div key={o.id} className={s.matchCard} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <div className={s.matchTop}>
-              <span className={s.matchCat}>{o.is_hq ? "🏛️ " : "🌍 "}{o.country}</span>
+              <span className={s.matchCat}>{o.is_hq ? "HQ · " : ""}{o.country}</span>
               {o.is_hq ? <span className={s.matchTagWarn}>HQ</span> : (
                 <button className={s.iconStar} onClick={() => remove(o.id)} title="Remove"><Trash2 size={16} color="#dc3545" /></button>
               )}

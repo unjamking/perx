@@ -4,8 +4,8 @@ import { useFocusEffect } from "@react-navigation/native";
 import Animated, { FadeInUp, SlideInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { C, R, shadow, fmt } from "../theme";
-import { OfferCard, SectionHeader, ScreenFade } from "../components";
+import { C, R, shadow, fmt, cleanCategory } from "../theme";
+import { OfferCard, SectionHeader, ScreenFade, CartPill } from "../components";
 import { api, EMPLOYEE_ID } from "../api";
 import { useCart } from "../CartContext";
 import CartSheet from "../CartSheet";
@@ -34,7 +34,7 @@ export default function Home({ navigation }) {
       <ScreenFade>
       <View style={s.topbar}>
         <View>
-          <Text style={s.hi}>{t("hi")} {firstName} 👋</Text>
+          <Text style={s.hi}>{t("hi")} {firstName}</Text>
           <Text style={s.sub}>{t("welcomeBack")}</Text>
         </View>
         <View style={s.budgetPill}>
@@ -59,7 +59,7 @@ export default function Home({ navigation }) {
         {/* Recommended */}
         {feed.recommended.length > 0 && (
           <View style={s.section}>
-            <SectionHeader title={feed.topCategory ? `${t("forYouCat")} · ${feed.topCategory}` : t("recommended")} />
+            <SectionHeader title={feed.topCategory ? `${t("forYouCat")} · ${cleanCategory(feed.topCategory)}` : t("recommended")} />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
               {feed.recommended.map((o) => (
                 <View key={o.id} style={{ width: 200 }}>
@@ -76,7 +76,7 @@ export default function Home({ navigation }) {
             <View style={s.hero}>
               <Text style={s.heroBadge}>{t("featured")}</Text>
               <Text style={s.heroTitle}>{o.title}</Text>
-              <Text style={s.heroSub}>{o.provider} · {o.category}</Text>
+              <Text style={s.heroSub}>{o.provider} · {cleanCategory(o.category)}</Text>
               <View style={s.heroFoot}>
                 <Text style={s.heroPrice}>{fmt(o.price_all)}</Text>
                 <Pressable style={s.heroBtn} onPress={() => cart.add(o)}>
@@ -100,14 +100,7 @@ export default function Home({ navigation }) {
         )}
       </ScrollView>
 
-      {cart.items.length > 0 && (
-        <Animated.View entering={SlideInDown} style={s.floatCart}>
-          <Pressable style={s.floatCartBtn} onPress={() => setCartOpen(true)}>
-            <Ionicons name="cart" size={18} color="#fff" />
-            <Text style={s.floatCartText}>{t("cart")} ({cart.items.length}) — {fmt(cart.total)}</Text>
-          </Pressable>
-        </Animated.View>
-      )}
+      <CartPill onPress={() => setCartOpen(true)} />
       </ScreenFade>
       <CartSheet open={cartOpen} onClose={() => setCartOpen(false)} />
     </SafeAreaView>

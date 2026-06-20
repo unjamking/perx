@@ -55,6 +55,7 @@ export const api = {
   notifications: () => req("/api/employee/notifications"),
   challenges: (eid) => req(`/api/employee/challenges?employee_id=${eid}`),
   joinChallenge: (id, employee_id) => req(`/api/employee/challenges/${id}/join`, { method: "POST", body: { employee_id } }),
+  completeChallenge: (id, employee_id) => req(`/api/employee/challenges/${id}/complete`, { method: "POST", body: { employee_id } }),
   achievements: (eid) => req(`/api/employee/achievements?employee_id=${eid}`),
   summary: (eid) => req(`/api/employee/summary?employee_id=${eid}`),
   redeemed: (eid) => req(`/api/employee/redeemed?employee_id=${eid}`),

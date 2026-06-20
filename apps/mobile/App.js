@@ -1,6 +1,8 @@
 import "react-native-gesture-handler";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { View, ActivityIndicator, Pressable, StyleSheet } from "react-native";
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
+import { useEffect } from "react";
 import { NavigationContainer, useNavigation } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -25,7 +27,18 @@ import Profile from "./src/screens/Profile";
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-const ICON = { Home: "home", Explore: "compass", Perxify: "flame", "My Benefits": "wallet", Challenges: "trophy", Profile: "person" };
+const ICON = { Home: "home", Explore: "compass", Perxify: "flame", Challenges: "trophy", Profile: "person" };
+
+// Profile tab now hosts My Benefits too (reached from a row in Profile), so the
+// benefits screen no longer needs its own tab — fewer tabs.
+function ProfileStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="ProfileHome" component={Profile} />
+      <Stack.Screen name="MyBenefits" component={MyBenefits} />
+    </Stack.Navigator>
+  );
+}
 
 // Global concierge button — circular FAB on every tab screen so the AI is one tap
 // away anywhere, not buried in Explore. Sits above the tab bar.
@@ -38,6 +51,23 @@ function ConciergeFab() {
   );
 }
 
+// Tab icon: gentle pop + dot indicator when active.
+function TabIcon({ name, size, color, focused }) {
+  const sc = useSharedValue(focused ? 1 : 0);
+  useEffect(() => { sc.value = withSpring(focused ? 1 : 0, { damping: 12, stiffness: 220 }); }, [focused]);
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: 1 + sc.value * 0.18 }, { translateY: -sc.value * 2 }] }));
+  return (
+    <View style={{ alignItems: "center", justifyContent: "center" }}>
+      <Animated.View style={style}><Ionicons name={name} size={size} color={color} /></Animated.View>
+      <View style={[tab.dot, { backgroundColor: focused ? C.surface : "transparent" }]} />
+    </View>
+  );
+}
+
+const tab = StyleSheet.create({
+  dot: { width: 5, height: 5, borderRadius: 3, marginTop: 3 },
+});
+
 function Tabs() {
   const { t } = useLang();
   return (
@@ -47,18 +77,17 @@ function Tabs() {
           headerShown: false,
           tabBarActiveTintColor: C.surface,
           tabBarInactiveTintColor: C.textOnDark,
-          tabBarStyle: { backgroundColor: C.dark, borderTopWidth: 0, height: 64, paddingBottom: 10, paddingTop: 8 },
+          tabBarStyle: { backgroundColor: C.dark, borderTopWidth: 0, height: 68, paddingBottom: 10, paddingTop: 8 },
           tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
           tabBarLabel: t(route.name),
-          tabBarIcon: ({ color, size }) => <Ionicons name={ICON[route.name]} size={size} color={color} />,
+          tabBarIcon: ({ color, size, focused }) => <TabIcon name={ICON[route.name]} size={size} color={color} focused={focused} />,
         })}
       >
         <Tab.Screen name="Home" component={Home} />
         <Tab.Screen name="Explore" component={Explore} />
         <Tab.Screen name="Perxify" component={Perxify} />
-        <Tab.Screen name="My Benefits" component={MyBenefits} />
         <Tab.Screen name="Challenges" component={Challenges} />
-        <Tab.Screen name="Profile" component={Profile} />
+        <Tab.Screen name="Profile" component={ProfileStack} />
       </Tab.Navigator>
       <ConciergeFab />
     </View>

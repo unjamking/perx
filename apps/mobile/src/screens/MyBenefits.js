@@ -17,7 +17,7 @@ const BADGE = {
   rejected: { bg: "#f7dada", fg: "#b3261e" },
 };
 
-export default function MyBenefits() {
+export default function MyBenefits({ navigation }) {
   const cart = useCart();
   const { t } = useLang();
   const [tab, setTab] = useState("active");
@@ -44,7 +44,12 @@ export default function MyBenefits() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top"]}>
       <ScreenFade>
-      <Text style={s.h1}>{t("myBenefits")}</Text>
+      <View style={s.topRow}>
+        <Bounce onPress={() => navigation.goBack()} hitSlop={10} scale={0.85} style={s.backBtn}>
+          <Ionicons name="chevron-back" size={26} color={C.text} />
+        </Bounce>
+        <Text style={s.h1}>{t("myBenefits")}</Text>
+      </View>
       <View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabs}>
           {TABS.map((tk) => (
@@ -98,7 +103,7 @@ function ReqCard({ r, i, canReview, redeemed = [], onReview }) {
         </View>
       </View>
       <Text style={[s.muted, { marginTop: 6 }]}>{r.items.map((it) => it.title).join(", ")}</Text>
-      {r.gifted_by_name ? <Text style={s.giftedBadge}>🎁 {t("giftedBy")} {r.gifted_by_name}</Text> : null}
+      {r.gifted_by_name ? <Text style={s.giftedBadge}>{t("giftedBy")} {r.gifted_by_name}</Text> : null}
       <Text style={[s.muted, { marginTop: 2, fontSize: 11 }]}>{r.created_at?.slice(0, 10)}</Text>
       {reviewable.map((it) => (
         <Pressable key={it.offer_id} style={s.reviewBtn} onPress={() => onReview({ offer_id: it.offer_id, title: it.title })}>
@@ -147,7 +152,9 @@ function Empty({ msg }) {
 }
 
 const s = StyleSheet.create({
-  h1: { fontSize: 24, fontWeight: "800", color: C.text, paddingHorizontal: 16, paddingTop: 8 },
+  h1: { fontSize: 24, fontWeight: "800", color: C.text, paddingTop: 8 },
+  topRow: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingTop: 4 },
+  backBtn: { padding: 4 },
   tabs: { gap: 8, paddingHorizontal: 16, paddingVertical: 10 },
   tab: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 99, backgroundColor: "#fff", borderWidth: 1, borderColor: C.border },
   tabOn: { backgroundColor: C.accent, borderColor: C.accent },

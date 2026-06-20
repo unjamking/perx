@@ -34,9 +34,30 @@ const CAT_IMG = {
   "✈️ Travel": "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&q=70",
   "📱 Telecom": "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&q=70",
   "📚 Education": "https://images.unsplash.com/photo-1513258496099-48168024aec0?w=600&q=70",
+  Fitness: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&q=70",
+  Food: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&q=70",
+  Wellness: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600&q=70",
+  Travel: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&q=70",
+  Telecom: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&q=70",
+  Education: "https://images.unsplash.com/photo-1513258496099-48168024aec0?w=600&q=70",
 };
+const CATEGORY_MAP = {
+  "💪 Fitness": "Fitness",
+  "🍽️ Food": "Food",
+  "🧘 Wellness": "Wellness",
+  "✈️ Travel": "Travel",
+  "📱 Telecom": "Telecom",
+  "📚 Education": "Education",
+  Fitness: "Fitness",
+  Food: "Food",
+  Wellness: "Wellness",
+  Travel: "Travel",
+  Telecom: "Telecom",
+  Education: "Education",
+};
+export const cleanCategory = (category) => CATEGORY_MAP[category] || category || "";
 const FALLBACK_IMG = "https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?w=600&q=70";
 
 // Returns a usable image URI for an offer — uploaded image, else category photo.
 export const offerImage = (offer) =>
-  offer?.image_url || CAT_IMG[offer?.category] || FALLBACK_IMG;
+  offer?.image_url || CAT_IMG[offer?.category] || CAT_IMG[cleanCategory(offer?.category)] || FALLBACK_IMG;

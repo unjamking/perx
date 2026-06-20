@@ -840,7 +840,7 @@ function ProviderMatching({ itemVariants }) {
             </MagneticButton>
           </motion.div>
         ))}
-        {gaps.length === 0 && <Empty msg="No unmet vendor demand. Catalog covers all searches. 🎉" />}
+        {gaps.length === 0 && <Empty msg="No unmet vendor demand. Catalog covers all searches." />}
       </div>
     </motion.div>
   );
@@ -1104,7 +1104,7 @@ function NudgeCenter({ nudgeData, utilizationRate, itemVariants }) {
           );
         })}
         {inactiveList.length === 0 && (
-          <p style={{ color: "var(--text-secondary)", fontStyle: "italic" }}>All employees active recently! No nudges needed. 🎉</p>
+          <p style={{ color: "var(--text-secondary)", fontStyle: "italic" }}>All employees active recently! No nudges needed.</p>
         )}
       </div>
 

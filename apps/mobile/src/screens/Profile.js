@@ -4,17 +4,17 @@ import { useFocusEffect } from "@react-navigation/native";
 import Animated, { FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { C, R, shadow, fmt } from "../theme";
+import { C, R, shadow, fmt, cleanCategory } from "../theme";
 import { ProgressBar, PrimaryButton, Bounce, ScreenFade } from "../components";
 import { api, EMPLOYEE_ID } from "../api";
 import { useCart } from "../CartContext";
 import { useAuth } from "../AuthContext";
 import { useLang } from "../i18n";
 
-const CATS = ["💪 Fitness", "🍽️ Food", "🧘 Wellness", "✈️ Travel", "📱 Telecom", "📚 Education"];
+const CATS = ["Fitness", "Food", "Wellness", "Travel", "Telecom", "Education"];
 const CAT_COLORS = ["#215E68", "#5C9396", "#297376", "#013137", "#7fb0b2", "#a6cacb"];
 
-export default function Profile() {
+export default function Profile({ navigation }) {
   const cart = useCart();
   const { user, logout } = useAuth();
   const { lang, setLang, t } = useLang();
@@ -38,7 +38,7 @@ export default function Profile() {
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         {/* header */}
         <View style={s.header}>
-          <View style={s.avatar}><Text style={{ fontSize: 30 }}>{(user?.name?.[0] || "👤")}</Text></View>
+          <View style={s.avatar}><Text style={{ fontSize: 30 }}>{(user?.name?.[0] || "U")}</Text></View>
           <Text style={s.name}>{user?.name || t("account")}</Text>
           <Text style={s.role}>{user?.email}</Text>
         </View>
@@ -56,6 +56,18 @@ export default function Profile() {
           </View>
         </View>
 
+        {/* My Benefits — opens the benefits screen (no longer a tab) */}
+        <View style={s.section}>
+          <Bounce style={s.shareCard} scale={0.98} onPress={() => navigation.navigate("MyBenefits")}>
+            <Ionicons name="wallet" size={24} color={C.accent} />
+            <View style={{ flex: 1 }}>
+              <Text style={s.shareTitle}>{t("myBenefits")}</Text>
+              <Text style={s.muted}>{t("myBenefitsSub")}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={C.textSecondary} />
+          </Bounce>
+        </View>
+
         {/* Year in Benefits */}
         {summary && (
           <View style={s.section}>
@@ -67,13 +79,13 @@ export default function Profile() {
                 <Stat n={fmt(summary.taxSaved)} l={t("taxSaved")} />
               </View>
               {summary.topCategory && (
-                <Text style={s.yearHighlight}>{t("yourFavorite")}<Text style={{ fontWeight: "800" }}>{summary.topCategory}</Text>{summary.favoriteProvider ? ` ${t("atProvider")} ${summary.favoriteProvider}` : ""} 🎉</Text>
+                <Text style={s.yearHighlight}>{t("yourFavorite")}<Text style={{ fontWeight: "800" }}>{cleanCategory(summary.topCategory)}</Text>{summary.favoriteProvider ? ` ${t("atProvider")} ${summary.favoriteProvider}` : ""}</Text>
               )}
               <View style={{ gap: 10, marginTop: 8 }}>
                 {summary.byCat.map((c, i) => (
                   <View key={c.category}>
                     <View style={s.catRow}>
-                      <Text style={s.catName}>{c.category}</Text>
+                      <Text style={s.catName}>{cleanCategory(c.category)}</Text>
                       <Text style={s.catVal}>{fmt(c.total)}</Text>
                     </View>
                     <View style={s.catTrack}>
@@ -89,7 +101,6 @@ export default function Profile() {
         {/* share with colleagues */}
         <View style={s.section}>
           <Bounce style={s.shareCard} scale={0.98} onPress={() => setGiftOpen(true)}>
-            <Text style={{ fontSize: 26 }}>🎁</Text>
             <View style={{ flex: 1 }}>
               <Text style={s.shareTitle}>{t("shareCredit")}</Text>
               <Text style={s.muted}>{t("giftCreditSub")}</Text>
@@ -240,7 +251,7 @@ function GiftModal({ open, colleagues, left, onClose, onDone }) {
             {packages.length === 0 && <Text style={s.muted}>{t("noBundles")}</Text>}
             {packages.map((p) => (
               <Bounce key={p.id} onPress={() => setPickId(p.id)} style={[s.giftItem, pickId === p.id && s.giftItemOn]}>
-                <Text style={[s.giftItemTitle, pickId === p.id && { color: "#fff" }]}>📦 {p.title}</Text>
+                <Text style={[s.giftItemTitle, pickId === p.id && { color: "#fff" }]}>{p.title}</Text>
                 <Text style={[s.giftItemPrice, pickId === p.id && { color: "#fff" }]}>{fmt(p.total_price_all)}</Text>
               </Bounce>
             ))}

@@ -20,6 +20,7 @@ export default function Challenges() {
   useFocusEffect(load);
 
   const join = async (id) => { await api.joinChallenge(id, EMPLOYEE_ID); load(); };
+  const complete = async (id) => { await api.completeChallenge(id, EMPLOYEE_ID); load(); };
   const unlocked = achievements.filter((a) => a.unlocked).length;
   const streak = challenges.filter((c) => c.joined).length;
 
@@ -31,12 +32,12 @@ export default function Challenges() {
         {/* streak banner */}
         <View style={s.streakCard}>
           <View>
-            <Text style={s.streakNum}>🔥 {streak}</Text>
+            <Text style={s.streakNum}>{streak}</Text>
             <Text style={s.streakLabel}>{t("activeChallenges")}</Text>
           </View>
           <View style={s.streakDivider} />
           <View>
-            <Text style={s.streakNum}>🏅 {unlocked}/{achievements.length}</Text>
+            <Text style={s.streakNum}>{unlocked}/{achievements.length}</Text>
             <Text style={s.streakLabel}>{t("achievements")}</Text>
           </View>
         </View>
@@ -63,7 +64,9 @@ export default function Challenges() {
                 {c.completed ? (
                   <View style={s.doneTag}><Text style={s.doneText}>{t("completed")}</Text></View>
                 ) : c.joined ? (
-                  <View style={s.joinedTag}><Text style={s.joinedText}>{t("joinedKeepGoing")}</Text></View>
+                  <Bounce style={s.completeBtn} onPress={() => complete(c.id)}>
+                    <Text style={s.completeText}>{t("markComplete")}</Text>
+                  </Bounce>
                 ) : (
                   <Bounce style={s.joinBtn} onPress={() => join(c.id)}><Text style={s.joinText}>{t("joinChallenge")}</Text></Bounce>
                 )}
@@ -109,6 +112,8 @@ const s = StyleSheet.create({
   progText: { color: C.textSecondary, fontSize: 12, fontWeight: "600" },
   joinBtn: { backgroundColor: C.accent, borderRadius: R.btn, paddingVertical: 11, alignItems: "center", marginTop: 12 },
   joinText: { color: "#fff", fontWeight: "700" },
+  completeBtn: { backgroundColor: "#2bb673", borderRadius: R.btn, paddingVertical: 11, alignItems: "center", marginTop: 12 },
+  completeText: { color: "#fff", fontWeight: "800" },
   joinedTag: { marginTop: 12, alignSelf: "flex-start" },
   joinedText: { color: C.surface, fontWeight: "700" },
   doneTag: { marginTop: 12, backgroundColor: "#d6ece9", borderRadius: R.btn, paddingVertical: 9, alignItems: "center" },
