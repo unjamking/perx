@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { View, Text, Pressable, StyleSheet, Modal, FlatList } from "react-native";
-import Animated, { Layout } from "react-native-reanimated";
+import Animated, { Layout, FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { C, R, fmt } from "./theme";
-import { PrimaryButton } from "./components";
+import { PrimaryButton, Bounce } from "./components";
 import { useCart } from "./CartContext";
+import { useLang } from "./i18n";
 
 export default function CartSheet({ open, onClose }) {
   const cart = useCart();
+  const { t } = useLang();
   const after = cart.left - cart.total;
   const [err, setErr] = useState("");
   const submit = async () => {
@@ -21,37 +23,37 @@ export default function CartSheet({ open, onClose }) {
       <View style={s.sheet}>
         <View style={s.handle} />
         <View style={s.sheetHead}>
-          <Text style={s.h3}>Your Cart</Text>
+          <Text style={s.h3}>{t("yourCart")}</Text>
           <Pressable onPress={onClose}><Ionicons name="close" size={24} color={C.textSecondary} /></Pressable>
         </View>
         <FlatList
           data={cart.items}
           keyExtractor={(i) => String(i.cartId)}
-          ListEmptyComponent={<Text style={s.muted}>Cart is empty.</Text>}
+          ListEmptyComponent={<Text style={s.muted}>{t("cartEmpty")}</Text>}
           renderItem={({ item }) => (
-            <Animated.View layout={Layout} style={s.cartRow}>
+            <Animated.View layout={Layout.springify()} entering={FadeInRight} exiting={FadeOutLeft} style={s.cartRow}>
               <Text style={{ fontSize: 22 }}>{item.category.split(" ")[0]}</Text>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontWeight: "600" }}>{item.title}</Text>
                 <Text style={s.muted}>{item.provider}</Text>
               </View>
               <Text style={s.price}>{fmt(item.price_all)}</Text>
-              <Pressable onPress={() => cart.remove(item.cartId)} hitSlop={8}>
+              <Bounce onPress={() => cart.remove(item.cartId)} hitSlop={8} scale={0.8}>
                 <Ionicons name="trash-outline" size={18} color={C.textSecondary} />
-              </Pressable>
+              </Bounce>
             </Animated.View>
           )}
           style={{ maxHeight: 280 }}
         />
         {cart.items.length > 0 && (
           <>
-            <View style={s.totalRow}><Text style={s.muted}>Total</Text><Text style={{ fontWeight: "800" }}>{fmt(cart.total)}</Text></View>
+            <View style={s.totalRow}><Text style={s.muted}>{t("total")}</Text><Text style={{ fontWeight: "800" }}>{fmt(cart.total)}</Text></View>
             <View style={s.totalRow}>
-              <Text style={s.muted}>Remaining after</Text>
+              <Text style={s.muted}>{t("remainingAfter")}</Text>
               <Text style={{ fontWeight: "700", color: after < 0 ? "#b3261e" : C.textSecondary }}>{fmt(after)}</Text>
             </View>
             {err ? <Text style={s.err}>{err}</Text> : null}
-            <PrimaryButton label={after < 0 ? "Over budget" : "Request Approval →"} disabled={after < 0}
+            <PrimaryButton label={after < 0 ? t("overBudget") : t("requestApproval")} disabled={after < 0}
               style={{ marginTop: 14 }} onPress={submit} />
           </>
         )}

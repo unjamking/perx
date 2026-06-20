@@ -1,6 +1,43 @@
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { useState, useCallback } from "react";
+import { View, Text, Pressable, StyleSheet, Image } from "react-native";
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, FadeInUp } from "react-native-reanimated";
+import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { C, R, shadow, fmt } from "./theme";
+import { C, R, shadow, fmt, offerImage } from "./theme";
+import { useLang } from "./i18n";
+
+const AP = Animated.createAnimatedComponent(Pressable);
+
+// Re-runs every time the screen gains focus. Tab screens stay mounted, so
+// `entering` fires only once — bumping a key on focus replays it.
+// Soft slide-up + fade (rises ~22px, spring). ponytail: tune .springify/duration
+// or the `22` offset if the motion feels off.
+export function ScreenFade({ children, style }) {
+  const [k, setK] = useState(0);
+  useFocusEffect(useCallback(() => setK((n) => n + 1), []));
+  return (
+    <Animated.View key={k} entering={FadeInUp.springify().damping(18).mass(0.9).stiffness(120)} style={[{ flex: 1 }, style]}>
+      {children}
+    </Animated.View>
+  );
+}
+
+// Press-to-scale wrapper — spring bounce on tap. Drop-in for any Pressable.
+// ponytail: one shared component instead of repeating scale logic per button.
+export function Bounce({ children, style, scale = 0.95, ...props }) {
+  const s = useSharedValue(1);
+  const aStyle = useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
+  return (
+    <AP
+      onPressIn={() => (s.value = withSpring(scale, { damping: 15, stiffness: 400 }))}
+      onPressOut={() => (s.value = withSpring(1, { damping: 12, stiffness: 300 }))}
+      style={[style, aStyle]}
+      {...props}
+    >
+      {children}
+    </AP>
+  );
+}
 
 export function Tag({ label, dark }) {
   return (
@@ -14,23 +51,25 @@ const today = new Date().toISOString().slice(0, 10);
 
 // Revolutionary offer card: gradient accent, discount strike-through, deal countdown, save heart.
 export function OfferCard({ offer, onAdd, onSave, saved, onSubscribe, subscribed, full }) {
+  const { t } = useLang();
   const emoji = offer.provider_emoji || offer.category.split(" ")[0];
   const dealLive = offer.deal_ends && offer.deal_ends >= today;
   const final = offer.discount_pct ? Math.round(offer.price_all * (1 - offer.discount_pct / 100)) : offer.price_all;
   return (
     <View style={[s.card, full && { flex: undefined, width: "100%" }]}>
+      <Image source={{ uri: offerImage(offer) }} style={s.cardImage} resizeMode="cover" />
       <View style={s.cardTop}>
         <View style={s.emojiCircle}><Text style={{ fontSize: 22 }}>{emoji}</Text></View>
         <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
           {onSubscribe && (
-            <Pressable onPress={() => onSubscribe(offer.id)} hitSlop={10}>
+            <Bounce onPress={() => onSubscribe(offer.id)} hitSlop={10} scale={0.8}>
               <Ionicons name={subscribed ? "sync-circle" : "sync-circle-outline"} size={24} color={subscribed ? C.accent : C.textSecondary} />
-            </Pressable>
+            </Bounce>
           )}
           {onSave && (
-            <Pressable onPress={() => onSave(offer.id)} hitSlop={10}>
+            <Bounce onPress={() => onSave(offer.id)} hitSlop={10} scale={0.8}>
               <Ionicons name={saved ? "heart" : "heart-outline"} size={22} color={saved ? "#e0537b" : C.textSecondary} />
-            </Pressable>
+            </Bounce>
           )}
         </View>
       </View>
@@ -46,10 +85,10 @@ export function OfferCard({ offer, onAdd, onSave, saved, onSubscribe, subscribed
           {offer.discount_pct ? <Text style={s.strike}>{fmt(offer.price_all)}</Text> : null}
           <Text style={s.price}>{fmt(final)}</Text>
         </View>
-        <Pressable style={s.addBtn} onPress={() => onAdd(offer)} hitSlop={8}>
+        <Bounce style={s.addBtn} onPress={() => onAdd(offer)} hitSlop={8}>
           <Ionicons name="add" size={16} color="#fff" />
-          <Text style={s.addBtnText}>Add</Text>
-        </Pressable>
+          <Text style={s.addBtnText}>{t("add")}</Text>
+        </Bounce>
       </View>
     </View>
   );
@@ -57,11 +96,11 @@ export function OfferCard({ offer, onAdd, onSave, saved, onSubscribe, subscribed
 
 export function PrimaryButton({ label, onPress, style, disabled, icon }) {
   return (
-    <Pressable onPress={onPress} disabled={disabled}
-      style={({ pressed }) => [s.primary, style, disabled && { opacity: 0.5 }, pressed && { opacity: 0.85 }]}>
+    <Bounce onPress={onPress} disabled={disabled}
+      style={[s.primary, style, disabled && { opacity: 0.5 }]}>
       {icon ? <Ionicons name={icon} size={16} color="#fff" style={{ marginRight: 6 }} /> : null}
       <Text style={s.primaryText}>{label}</Text>
-    </Pressable>
+    </Bounce>
   );
 }
 
@@ -84,7 +123,8 @@ export function ProgressBar({ pct, dark }) {
 
 const s = StyleSheet.create({
   card: { backgroundColor: C.card, borderRadius: R.card, padding: 14, gap: 5,
-    borderWidth: 1, borderColor: C.border, ...shadow, flex: 1 },
+    borderWidth: 1, borderColor: C.border, ...shadow, flex: 1, overflow: "hidden" },
+  cardImage: { height: 120, marginTop: -14, marginHorizontal: -14, marginBottom: 4, backgroundColor: C.bg },
   cardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   emojiCircle: { width: 44, height: 44, borderRadius: 14, backgroundColor: C.bg, alignItems: "center", justifyContent: "center" },
   badgeRow: { flexDirection: "row", gap: 6, alignItems: "center", flexWrap: "wrap" },

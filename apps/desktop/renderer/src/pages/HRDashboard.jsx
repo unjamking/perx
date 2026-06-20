@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
+  BarChart, Bar, Legend,
 } from "recharts";
 import { motion, AnimatePresence, NumberTicker, MagneticButton, ShimmerButton } from "../components/ui.jsx";
 import {
   ChevronUp, Download, Search, Send, X, AlertTriangle, CheckCircle, Lock, Unlock,
   Smile, TrendingUp, ShieldCheck, Store, Zap, Gift, Wallet, LayoutGrid, Bell,
-  UserPlus, Copy, KeyRound, Check, ScrollText,
+  UserPlus, Copy, KeyRound, Check, ScrollText, Flame,
 } from "lucide-react";
 import StatusBadge from "../components/StatusBadge.jsx";
 import { DesktopShell } from "../components/Shells.jsx";
@@ -35,6 +36,7 @@ const NAV = [
     { id: "Provider Matching", icon: Store },
   ]},
   { group: "Engagement", items: [
+    { id: "Perxify Insights", icon: Flame },
     { id: "Challenges & Policy", icon: CheckCircle },
     { id: "Flash Drops", icon: Zap },
     { id: "Peer Gifting", icon: Gift },
@@ -143,6 +145,7 @@ export default function HRDashboard() {
               {view === "Challenges & Policy" && (
                 <PolicyAndChallenges challenges={challenges} setChallenges={setChallenges} refreshChallenges={loadData} itemVariants={itemVariants} />
               )}
+              {view === "Perxify Insights" && <PerxifyInsights itemVariants={itemVariants} />}
               {view === "Flash Drops" && <FlashDrops itemVariants={itemVariants} />}
               {view === "Peer Gifting" && <PeerGifting itemVariants={itemVariants} />}
               {view === "Nudge Center" && <NudgeCenter nudgeData={nudgeData} utilizationRate={utilizationRate} itemVariants={itemVariants} />}
@@ -605,6 +608,63 @@ function BudgetForecasting({ forecast, itemVariants }) {
 }
 
 /* ── Spend Analytics (real data only) ── */
+// Perxify Insights: anonymous category popularity from employee swipes.
+function PerxifyInsights({ itemVariants }) {
+  const [data, setData] = useState(null);
+  useEffect(() => { api.hrPerxifyAnalytics().then(setData); }, []);
+
+  const rows = data ?? [];
+  const totalSwipes = rows.reduce((sum, r) => sum + r.total, 0);
+  const chart = rows.map((r) => ({
+    name: r.category, likes: r.likes, dislikes: r.dislikes, superlikes: r.superlikes,
+    score: r.total ? Math.round((r.likes / r.total) * 100) : 0,
+  }));
+  const top = chart[0];
+
+  return (
+    <motion.div variants={itemVariants} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div className={s.analyticsGrid} style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+        <div className="card" style={{ padding: 20, textAlign: "center" }}>
+          <div className={s.cardTitle}>Total Swipes</div>
+          <div style={{ fontSize: 32, fontWeight: 800, color: "#215E68" }}>{totalSwipes}</div>
+        </div>
+        <div className="card" style={{ padding: 20, textAlign: "center" }}>
+          <div className={s.cardTitle}>Most Loved</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "#215E68" }}>{top?.name || "—"}</div>
+        </div>
+        <div className="card" style={{ padding: 20, textAlign: "center" }}>
+          <div className={s.cardTitle}>Categories Tracked</div>
+          <div style={{ fontSize: 32, fontWeight: 800, color: "#215E68" }}>{rows.length}</div>
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+        <h4 className={s.cardTitle}>Category Sentiment (anonymous)</h4>
+        {chart.length ? (
+          <div style={{ width: "100%", height: 320 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chart} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(33, 94, 104, 0.08)" />
+                <XAxis dataKey="name" stroke="var(--text-secondary)" fontSize={11} tickLine={false} axisLine={false} interval={0} />
+                <YAxis stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} />
+                <Tooltip contentStyle={tipStyle} />
+                <Legend />
+                <Bar dataKey="likes" stackId="a" fill="#2bb673" radius={[0, 0, 0, 0]} name="Likes" />
+                <Bar dataKey="superlikes" stackId="a" fill="#f0b429" name="Super Likes" />
+                <Bar dataKey="dislikes" stackId="a" fill="#e0537b" radius={[4, 4, 0, 0]} name="Dislikes" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <p style={{ color: "var(--text-secondary)", textAlign: "center", padding: 32 }}>
+            No swipe data yet. Employees build this by swiping in Perxify.
+          </p>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 function SpendAnalytics({ analyticsData, totalBudget, totalSpent, itemVariants }) {
   const categoriesData = useMemo(
     () => (analyticsData?.byCat ?? []).map((c) => ({ name: c.category, value: c.total })),

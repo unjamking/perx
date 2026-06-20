@@ -59,6 +59,7 @@ export const api = {
   departments: (company_id = 1) => req(`/api/departments?company_id=${company_id}`),
   allocateBudget: (body) => req("/api/hr/allocate", { method: "POST", body }),
   hrAudit: () => req("/api/hr/audit"),
+  hrPerxifyAnalytics: () => req("/api/hr/perxify-analytics"),
   employerAudit: () => req("/api/employer/audit"),
 
   // Employer

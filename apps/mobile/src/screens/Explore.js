@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
-import { View, Text, ScrollView, Pressable, StyleSheet, TextInput, Platform } from "react-native";
-import Animated, { FadeInUp, SlideInDown } from "react-native-reanimated";
+import { View, Text, ScrollView, Pressable, StyleSheet, TextInput, Platform, Modal } from "react-native";
+import Animated, { FadeInUp, FadeIn, SlideInDown, Layout } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { C, R, shadow, fmt } from "../theme";
-import { OfferCard } from "../components";
-import { api } from "../api";
+import { OfferCard, Bounce, ScreenFade } from "../components";
+import { api, EMPLOYEE_ID } from "../api";
 import { useCart } from "../CartContext";
 import CartSheet from "../CartSheet";
+import { useLang } from "../i18n";
 
 // Map only on native — react-native-maps has no web build.
 let MapView, Marker;
@@ -19,11 +20,12 @@ if (Platform.OS !== "web") {
 }
 
 const CATS = ["All", "💪 Fitness", "🍽️ Food", "🧘 Wellness", "✈️ Travel", "📱 Telecom", "📚 Education"];
-const MODES = ["Browse", "Nearby", "Concierge"];
+const MODES = ["forYou", "browse", "nearby"];
 
 export default function Explore({ navigation }) {
   const cart = useCart();
-  const [mode, setMode] = useState("Browse");
+  const { t } = useLang();
+  const [mode, setMode] = useState("forYou");
   const [offers, setOffers] = useState([]);
   const [packages, setPackages] = useState([]);
   const [cat, setCat] = useState("All");
@@ -40,44 +42,46 @@ export default function Explore({ navigation }) {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top"]}>
-      <Text style={s.h1}>Explore</Text>
+      <ScreenFade>
+      <Text style={s.h1}>{t("explore")}</Text>
 
       {/* search */}
       <View style={s.searchWrap}>
         <Ionicons name="search" size={18} color={C.textSecondary} />
-        <TextInput style={s.search} placeholder="Search benefits, providers…" placeholderTextColor={C.textSecondary}
+        <TextInput style={s.search} placeholder={t("search_ph")} placeholderTextColor={C.textSecondary}
           value={q} onChangeText={setQ} />
       </View>
 
-      {/* mode switch */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.modeTabs}>
+      {/* mode switch — only 3, fit on one row, no scroll */}
+      <View style={s.modeTabs}>
         {MODES.map((m) => (
-          <Pressable key={m} onPress={() => setMode(m)} style={[s.modeTab, mode === m && s.modeTabOn]}>
-            <Text style={[s.modeText, mode === m && { color: "#fff" }]}>{m}</Text>
-          </Pressable>
+          <Bounce key={m} onPress={() => setMode(m)} style={[s.modeTab, mode === m && s.modeTabOn]}>
+            <Text style={[s.modeText, mode === m && { color: "#fff" }]}>{t(m)}</Text>
+          </Bounce>
         ))}
-      </ScrollView>
+      </View>
 
-      {mode === "Concierge" && <ConciergeCTA navigation={navigation} />}
+      {mode === "forYou" && <Animated.View key="forYou" entering={FadeIn.duration(420)} style={{ flex: 1 }}><ForYou cart={cart} /></Animated.View>}
 
-      {mode === "Nearby" && <Nearby cart={cart} />}
+      {mode === "nearby" && <Animated.View key="nearby" entering={FadeIn.duration(420)} style={{ flex: 1 }}><Nearby cart={cart} /></Animated.View>}
 
-      {mode === "Browse" && (
+      {mode === "browse" && (
+        <Animated.View key="browse" entering={FadeIn.duration(420)} style={{ flex: 1 }}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabs}>
-            {CATS.map((t) => {
-              const on = cat === t;
+            {CATS.map((ct) => {
+              const on = cat === ct;
               return (
-                <Pressable key={t} onPress={() => setCat(t)} style={[s.tab, on && s.tabOn]}>
-                  <Text style={[s.tabText, on && { color: "#fff" }]}>{t === "All" ? "All" : t}</Text>
-                </Pressable>
+                <Bounce key={ct} onPress={() => setCat(ct)} style={[s.tab, on && s.tabOn]}>
+                  <Text style={[s.tabText, on && { color: "#fff" }]}>{ct === "All" ? "All" : ct}</Text>
+                </Bounce>
               );
             })}
           </ScrollView>
 
           {cat === "All" && q === "" && packages.length > 0 && (
             <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
-              <Text style={s.h4}>📦 Bundle Deals</Text>
+              <Text style={s.h4}>{t("bundleDeals")}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
                 {packages.map((p) => (
                   <View key={p.id} style={s.pkg}>
@@ -98,41 +102,73 @@ export default function Explore({ navigation }) {
 
           <View style={{ paddingHorizontal: 16, gap: 12, marginTop: 8 }}>
             {rows.map((row, ri) => (
-              <Animated.View key={ri} entering={FadeInUp.delay(ri * 50)} style={{ flexDirection: "row", gap: 12, alignItems: "stretch" }}>
+              <Animated.View key={ri} layout={Layout.springify()} style={{ flexDirection: "row", gap: 12, alignItems: "stretch" }}>
                 {row.map((o) => <OfferCard key={o.id} offer={o} onAdd={cart.add} onSave={cart.toggleSave} saved={cart.saved.has(o.id)} onSubscribe={cart.toggleSubscribe} subscribed={cart.subscribed.has(o.id)} />)}
                 {row.length === 1 && <View style={{ flex: 1 }} />}
               </Animated.View>
             ))}
-            {filtered.length === 0 && <Text style={[s.muted, { textAlign: "center", padding: 24 }]}>No offers match.</Text>}
+            {filtered.length === 0 && <Text style={[s.muted, { textAlign: "center", padding: 24 }]}>{t("noOffers")}</Text>}
           </View>
         </ScrollView>
+        </Animated.View>
       )}
 
-      {cart.items.length > 0 && mode !== "Concierge" && (
+      {cart.items.length > 0 && (
         <Animated.View entering={SlideInDown} style={s.floatCart}>
           <Pressable style={s.floatCartBtn} onPress={() => setCartOpen(true)}>
             <Ionicons name="cart" size={18} color="#fff" />
-            <Text style={s.floatCartText}>Cart ({cart.items.length}) — {fmt(cart.total)}</Text>
+            <Text style={s.floatCartText}>{t("cart")} ({cart.items.length}) — {fmt(cart.total)}</Text>
           </Pressable>
         </Animated.View>
       )}
+      </ScreenFade>
       <CartSheet open={cartOpen} onClose={() => setCartOpen(false)} />
     </SafeAreaView>
   );
 }
 
-function ConciergeCTA({ navigation }) {
+// Personalized feed — Wolt-style "for you" landing: hero carousels (Recommended,
+// Deals) then a full grid of everything so the page always feels full, never 2 cards.
+function ForYou({ cart }) {
+  const { t } = useLang();
+  const [feed, setFeed] = useState(null);
+  const [all, setAll] = useState([]);
+  useEffect(() => {
+    api.feed(EMPLOYEE_ID).then(setFeed);
+    api.offers().then(setAll);
+  }, []);
+
+  const cardProps = (o) => ({ offer: o, onAdd: cart.add, onSave: cart.toggleSave,
+    saved: cart.saved.has(o.id), onSubscribe: cart.toggleSubscribe, subscribed: cart.subscribed.has(o.id) });
+
+  if (!feed) return <Text style={[s.muted, { textAlign: "center", padding: 24 }]}>{t("loadingPerks")}</Text>;
+
+  const rec = feed.recommended?.length ? feed.recommended : feed.featured || [];
+  const deals = feed.deals || [];
+  // Trending = most-picked, padded from all offers so the section never feels thin.
+  const recIds = new Set([...rec, ...deals].map((o) => o.id));
+  const trending = all.filter((o) => !recIds.has(o.id)).slice(0, 10);
+
   return (
-    <View style={{ padding: 16 }}>
-      <Animated.View entering={FadeInUp} style={s.conciergeCard}>
-        <Text style={{ fontSize: 40 }}>✨</Text>
-        <Text style={s.conciergeTitle}>AI Concierge</Text>
-        <Text style={s.conciergeSub}>Tell me what you need — relaxing, fitness, food — and your budget. I'll find the perfect perks.</Text>
-        <Pressable style={s.conciergeBtn} onPress={() => navigation.navigate("Concierge")}>
-          <Ionicons name="sparkles" size={16} color="#fff" />
-          <Text style={s.conciergeBtnText}>Start chatting</Text>
-        </Pressable>
-      </Animated.View>
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+      <Carousel title={t("pickedForYou")} offers={rec} cardProps={cardProps} />
+      {deals.length > 0 && <Carousel title={t("dealsEnding")} offers={deals} cardProps={cardProps} />}
+      <Carousel title={t("trending")} offers={trending} cardProps={cardProps} />
+    </ScrollView>
+  );
+}
+
+// Horizontal scrolling row of offer cards under a section title.
+function Carousel({ title, offers, cardProps }) {
+  if (!offers.length) return null;
+  return (
+    <View style={{ marginTop: 8 }}>
+      <Text style={[s.h4, { paddingHorizontal: 16 }]}>{title}</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: 16, paddingVertical: 4, alignItems: "stretch" }}>
+        {offers.map((o) => (
+          <View key={o.id} style={{ width: 220 }}><OfferCard {...cardProps(o)} /></View>
+        ))}
+      </ScrollView>
     </View>
   );
 }
@@ -146,9 +182,11 @@ function dist(a, b, c, d) {
 }
 
 function Nearby({ cart }) {
+  const { t } = useLang();
   const [offers, setOffers] = useState([]);
   const [loc, setLoc] = useState(null);
   const [perm, setPerm] = useState(null);
+  const [openProvider, setOpenProvider] = useState(null); // provider_id of open sheet
 
   useEffect(() => {
     api.nearby().then(setOffers);
@@ -157,7 +195,11 @@ function Nearby({ cart }) {
       setPerm(status);
       if (status === "granted") {
         const p = await Location.getCurrentPositionAsync({});
-        setLoc({ lat: p.coords.latitude, lng: p.coords.longitude });
+        let { latitude: lat, longitude: lng } = p.coords;
+        // Simulator has no GPS and defaults to Cupertino/SF. In dev, if we land in
+        // North America, fall back to Tirana so the map matches our providers.
+        if (__DEV__ && lng < -30) { lat = 41.3275; lng = 19.8187; }
+        setLoc({ lat, lng });
       }
     })();
   }, []);
@@ -183,21 +225,69 @@ function Nearby({ cart }) {
           </MapView>
         </View>
       )}
-      {perm === "denied" && <Text style={[s.muted, { padding: 16 }]}>Location off — showing all Tirana providers. Enable location for distances.</Text>}
+      {perm === "denied" && <Text style={[s.muted, { padding: 16 }]}>{t("locationOff")}</Text>}
       <View style={{ paddingHorizontal: 16, gap: 12 }}>
-        {withDist.map((p) => (
-          <View key={p.provider_id} style={s.nearRow}>
-            <Text style={{ fontSize: 28 }}>{p.provider_emoji}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontWeight: "700", color: C.text }}>{p.provider}</Text>
-              <Text style={s.muted}>📍 {p.address}</Text>
-              {p.km != null && <Text style={s.distChip}>{p.km.toFixed(1)} km away</Text>}
-            </View>
-            <Pressable style={s.addBtn} onPress={() => cart.add(p)}><Text style={s.addBtnText}>Add</Text></Pressable>
-          </View>
-        ))}
+        {withDist.map((p, pi) => {
+          const count = offers.filter((o) => o.provider_id === p.provider_id).length;
+          return (
+            <Animated.View key={p.provider_id} layout={Layout.springify()}>
+            <Bounce style={s.nearRow} scale={0.97} onPress={() => setOpenProvider(p.provider_id)}>
+              <Text style={{ fontSize: 28 }}>{p.provider_emoji}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontWeight: "700", color: C.text }}>{p.provider}</Text>
+                <Text style={s.muted}>📍 {p.address}</Text>
+                {p.km != null && <Text style={s.distChip}>{p.km.toFixed(1)} {t("kmAway")}</Text>}
+              </View>
+              <View style={{ alignItems: "center", gap: 2 }}>
+                <Text style={s.offerCount}>{count} {count === 1 ? t("perk") : t("perks")}</Text>
+                <Ionicons name="chevron-forward" size={20} color={C.textSecondary} />
+              </View>
+            </Bounce>
+            </Animated.View>
+          );
+        })}
       </View>
+
+      <ProviderSheet
+        provider={withDist.find((p) => p.provider_id === openProvider)}
+        offers={offers.filter((o) => o.provider_id === openProvider)}
+        cart={cart}
+        onClose={() => setOpenProvider(null)}
+      />
     </ScrollView>
+  );
+}
+
+// Bottom sheet: a single provider's offers, opened by tapping a Nearby row.
+function ProviderSheet({ provider, offers, cart, onClose }) {
+  const { t } = useLang();
+  if (!provider) return null;
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={s.backdrop} onPress={onClose} />
+      <View style={s.sheet}>
+        <View style={s.handle} />
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 4 }}>
+          <Text style={{ fontSize: 30 }}>{provider.provider_emoji}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={s.sheetTitle}>{provider.provider}</Text>
+            <Text style={s.muted}>📍 {provider.address}{provider.km != null ? ` · ${provider.km.toFixed(1)} km` : ""}</Text>
+          </View>
+        </View>
+        <ScrollView style={{ maxHeight: 420 }} contentContainerStyle={{ gap: 10, paddingVertical: 8 }}>
+          {offers.map((o) => (
+            <View key={o.id} style={s.sheetOffer}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontWeight: "700", color: C.text }}>{o.title}</Text>
+                <Text style={s.price}>{fmt(o.price_all)}</Text>
+              </View>
+              <Bounce style={s.addBtn} onPress={() => cart.add(o)}><Text style={s.addBtnText}>{t("add")}</Text></Bounce>
+            </View>
+          ))}
+          {offers.length === 0 && <Text style={[s.muted, { textAlign: "center", padding: 16 }]}>{t("noOffersNow")}</Text>}
+        </ScrollView>
+      </View>
+    </Modal>
   );
 }
 
@@ -207,10 +297,10 @@ const s = StyleSheet.create({
   muted: { color: C.textSecondary, fontSize: 13 },
   searchWrap: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#fff", marginHorizontal: 16, marginTop: 10, borderRadius: R.btn, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: C.border },
   search: { flex: 1, color: C.text },
-  modeTabs: { gap: 8, paddingLeft: 16, paddingRight: 24, paddingVertical: 10, alignItems: "center" },
-  modeTab: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 99, backgroundColor: "#fff", borderWidth: 1, borderColor: C.border },
+  modeTabs: { flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingVertical: 10 },
+  modeTab: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 99, backgroundColor: "#fff", borderWidth: 1, borderColor: C.border, justifyContent: "center" },
   modeTabOn: { backgroundColor: C.dark, borderColor: C.dark },
-  modeText: { color: C.textSecondary, fontWeight: "700" },
+  modeText: { color: C.textSecondary, fontWeight: "700", lineHeight: 20, includeFontPadding: false },
   tabs: { gap: 8, paddingLeft: 16, paddingRight: 24, paddingVertical: 6, alignItems: "center" },
   tab: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 99, backgroundColor: "#fff", borderWidth: 1, borderColor: C.border },
   tabOn: { backgroundColor: C.accent, borderColor: C.accent },
@@ -223,14 +313,15 @@ const s = StyleSheet.create({
   price: { color: C.accent, fontWeight: "800" },
   addBtn: { backgroundColor: C.accent, borderRadius: R.btn, paddingHorizontal: 14, paddingVertical: 7 },
   addBtnText: { color: "#fff", fontWeight: "700" },
-  conciergeCard: { backgroundColor: C.dark, borderRadius: R.card, padding: 24, alignItems: "center", gap: 8, ...shadow },
-  conciergeTitle: { color: "#fff", fontWeight: "800", fontSize: 20 },
-  conciergeSub: { color: C.textOnDark, opacity: 0.85, textAlign: "center", fontSize: 13, lineHeight: 19 },
-  conciergeBtn: { backgroundColor: C.surface, borderRadius: R.btn, paddingHorizontal: 22, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 },
-  conciergeBtnText: { color: "#fff", fontWeight: "800" },
   mapWrap: { height: 240, marginHorizontal: 16, marginBottom: 12, borderRadius: R.card, overflow: "hidden", ...shadow },
   nearRow: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "#fff", borderRadius: R.card, padding: 14, borderWidth: 1, borderColor: C.border, ...shadow },
   distChip: { color: C.accent, fontWeight: "700", fontSize: 12, marginTop: 2 },
+  offerCount: { color: C.textSecondary, fontWeight: "700", fontSize: 11 },
+  backdrop: { flex: 1, backgroundColor: "rgba(1,49,55,0.4)" },
+  sheet: { backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 32 },
+  handle: { alignSelf: "center", width: 40, height: 4, borderRadius: 99, backgroundColor: C.border, marginBottom: 14 },
+  sheetTitle: { fontWeight: "800", fontSize: 18, color: C.text },
+  sheetOffer: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: C.bg, borderRadius: R.card, padding: 14, borderWidth: 1, borderColor: C.border },
   floatCart: { position: "absolute", bottom: 20, left: 0, right: 0, alignItems: "center" },
   floatCartBtn: { backgroundColor: C.accent, borderRadius: R.btn, paddingHorizontal: 22, paddingVertical: 14, ...shadow, flexDirection: "row", alignItems: "center", gap: 8 },
   floatCartText: { color: "#fff", fontWeight: "800" },

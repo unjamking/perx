@@ -41,11 +41,15 @@ export const api = {
   employees: () => req("/api/employees"),
   selections: (eid) => req(`/api/selections?employee_id=${eid}`),
   createSelection: (body) => req("/api/selections", { method: "POST", body }),
-  concierge: (message, employee_id) => req("/api/concierge", { method: "POST", body: { message, employee_id } }),
+  concierge: (message, employee_id, lang) => req("/api/concierge", { method: "POST", body: { message, employee_id, lang } }),
 
   // Employee
   feed: (eid) => req(`/api/employee/feed?employee_id=${eid}`),
   nearby: () => req("/api/employee/nearby"),
+  // Perxify (swipe-based prefs) — employee_id comes from the token
+  perxifyDeck: () => req("/api/perxify/deck"),
+  perxifySwipe: (offer_id, action) => req("/api/perxify/swipe", { method: "POST", body: { offer_id, action } }),
+  perxifyRecs: () => req("/api/perxify/recommendations"),
   bookmarks: (eid) => req(`/api/employee/bookmarks?employee_id=${eid}`),
   toggleBookmark: (employee_id, offer_id) => req("/api/employee/bookmarks", { method: "POST", body: { employee_id, offer_id } }),
   notifications: () => req("/api/employee/notifications"),

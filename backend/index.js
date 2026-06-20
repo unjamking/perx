@@ -11,7 +11,7 @@ if (db.prepare("SELECT COUNT(*) c FROM companies").get().c === 0) seed();
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "8mb" })); // base64 offer images can be large
 
 const JWT_SECRET = process.env.JWT_SECRET || "perx-dev-secret-change-in-prod";
 
@@ -293,7 +293,8 @@ const itemsFor = db.prepare(`
 
 function hydrate(sel) {
   const emp = db.prepare("SELECT name FROM users WHERE id = ?").get(sel.employee_id);
-  return { ...sel, employee_name: emp?.name, items: itemsFor.all(sel.id) };
+  const giftedBy = sel.gifted_by ? db.prepare("SELECT name FROM users WHERE id = ?").get(sel.gifted_by)?.name : null;
+  return { ...sel, employee_name: emp?.name, gifted_by_name: giftedBy, items: itemsFor.all(sel.id) };
 }
 
 app.get("/api/selections", (req, res) => {
@@ -502,13 +503,13 @@ app.post("/api/hr/challenges", (req, res) => {
 });
 
 app.post("/api/concierge", async (req, res) => {
-  const { message, employee_id } = req.body;
+  const { message, employee_id, lang } = req.body;
   const emp = db.prepare("SELECT budget_total, budget_spent FROM users WHERE id = ?").get(employee_id) || {};
   const budget_remaining = (emp.budget_total || 10000) - (emp.budget_spent || 0);
   const catalog = db.prepare(`${offerWithProvider} WHERE o.is_active = 1`).all()
     .map((o) => ({ id: o.id, title: o.title, provider: o.provider, category: o.category, price_all: o.price_all }));
   try {
-    res.json(await concierge({ message, budget_remaining, catalog }));
+    res.json(await concierge({ message, budget_remaining, catalog, lang }));
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -657,20 +658,57 @@ app.get("/api/hr/gifts", (req, res) => {
 app.post("/api/gifts", (req, res) => {
   // Sender is always the authenticated user (can't gift on someone else's behalf).
   const from_employee = req.authUser.role === "employee" ? req.authUser.id : req.body.from_employee;
-  const { to_employee, amount_all, note } = req.body;
-  if (!from_employee || !to_employee || !amount_all)
-    return res.status(400).json({ error: "from_employee, to_employee, amount_all required" });
+  const { to_employee, note } = req.body;
+  const kind = req.body.kind || "credit"; // credit | offer | bundle
+  if (!from_employee || !to_employee) return res.status(400).json({ error: "from_employee, to_employee required" });
   if (from_employee === to_employee) return res.status(400).json({ error: "cannot gift yourself" });
   const sender = db.prepare("SELECT budget_total, budget_spent FROM users WHERE id = ?").get(from_employee);
   if (!sender) return res.status(404).json({ error: "sender not found" });
-  if (amount_all > sender.budget_total - sender.budget_spent)
-    return res.status(400).json({ error: "exceeds remaining budget" });
+  const available = sender.budget_total - sender.budget_spent;
+
+  // Resolve what's being gifted + its cost; build the recipient's items if it's a product/bundle.
+  let amount, items = [], offer_id = null, package_id = null;
+  if (kind === "credit") {
+    amount = Number(req.body.amount_all);
+    if (!amount) return res.status(400).json({ error: "amount_all required for credit gift" });
+  } else if (kind === "offer") {
+    offer_id = req.body.offer_id;
+    const o = db.prepare("SELECT id, price_all FROM offers WHERE id = ? AND is_active = 1").get(offer_id);
+    if (!o) return res.status(404).json({ error: "offer not found" });
+    amount = o.price_all; items = [{ offer_id: o.id, price_all: o.price_all }];
+  } else if (kind === "bundle") {
+    package_id = req.body.package_id;
+    const pkg = db.prepare("SELECT id, total_price_all FROM packages WHERE id = ?").get(package_id);
+    if (!pkg) return res.status(404).json({ error: "bundle not found" });
+    const offs = db.prepare(`SELECT o.id, o.price_all FROM package_offers po
+      JOIN offers o ON o.id = po.offer_id WHERE po.package_id = ?`).all(package_id);
+    amount = pkg.total_price_all || offs.reduce((s, o) => s + o.price_all, 0);
+    items = offs.map((o) => ({ offer_id: o.id, price_all: o.price_all }));
+  } else {
+    return res.status(400).json({ error: "invalid gift kind" });
+  }
+  if (amount > available) return res.status(400).json({ error: "exceeds remaining budget" });
+
   const tx = db.transaction(() => {
-    db.prepare("INSERT INTO gifts (from_employee,to_employee,amount_all,note) VALUES (?,?,?,?)")
-      .run(from_employee, to_employee, amount_all, note || "");
-    // Transfer credit: sender's available drops, recipient's budget grows.
-    db.prepare("UPDATE users SET budget_spent = budget_spent + ? WHERE id = ?").run(amount_all, from_employee);
-    db.prepare("UPDATE users SET budget_total = budget_total + ? WHERE id = ?").run(amount_all, to_employee);
+    db.prepare("INSERT INTO gifts (from_employee,to_employee,amount_all,note,kind,offer_id,package_id) VALUES (?,?,?,?,?,?,?)")
+      .run(from_employee, to_employee, amount, note || "", kind, offer_id, package_id);
+    // Sender always pays from their budget.
+    db.prepare("UPDATE users SET budget_spent = budget_spent + ? WHERE id = ?").run(amount, from_employee);
+    if (kind === "credit") {
+      // Recipient gets spendable credit.
+      db.prepare("UPDATE users SET budget_total = budget_total + ? WHERE id = ?").run(amount, to_employee);
+    } else {
+      // Recipient gets the actual benefit: an approved, already-paid selection in their wallet.
+      const selId = db.prepare("INSERT INTO selections (employee_id,total_amount,status,gifted_by) VALUES (?,?, 'approved', ?)")
+        .run(to_employee, amount, from_employee).lastInsertRowid;
+      const insItem = db.prepare("INSERT INTO selection_items (selection_id,offer_id,price_all) VALUES (?,?,?)");
+      const insT = db.prepare("INSERT INTO transactions (selection_id,provider_id,amount_all,status) VALUES (?,?,?,'paid')");
+      for (const it of items) {
+        insItem.run(selId, it.offer_id, it.price_all);
+        const prov = db.prepare("SELECT provider_id FROM offers WHERE id = ?").get(it.offer_id);
+        insT.run(selId, prov?.provider_id, it.price_all);
+      }
+    }
   });
   tx();
   res.json({ ok: true });
@@ -916,20 +954,20 @@ app.get("/api/provider/offers", (req, res) => {
 
 // Create offer (extended fields).
 app.post("/api/provider/offers", (req, res) => {
-  const { provider_id, title, description, category, price_all, discount_pct = 0, capacity = 0, deal_ends = null, target_group = null } = req.body;
+  const { provider_id, title, description, category, price_all, discount_pct = 0, capacity = 0, deal_ends = null, target_group = null, image_url = null } = req.body;
   if (!provider_id || !title || !price_all) return res.status(400).json({ error: "provider_id, title, price_all required" });
-  const id = db.prepare(`INSERT INTO offers (provider_id,title,description,category,price_all,discount_pct,capacity,deal_ends,target_group)
-    VALUES (?,?,?,?,?,?,?,?,?)`).run(provider_id, title, description || "", category || "", price_all, discount_pct, capacity, deal_ends, target_group).lastInsertRowid;
+  const id = db.prepare(`INSERT INTO offers (provider_id,title,description,category,price_all,discount_pct,capacity,deal_ends,target_group,image_url)
+    VALUES (?,?,?,?,?,?,?,?,?,?)`).run(provider_id, title, description || "", category || "", price_all, discount_pct, capacity, deal_ends, target_group, image_url).lastInsertRowid;
   res.json({ id });
 });
 
-// Update offer (edit / set discount / deal / capacity / targeting).
+// Update offer (edit / set discount / deal / capacity / targeting / image).
 app.put("/api/provider/offers/:id", (req, res) => {
   const cur = db.prepare("SELECT * FROM offers WHERE id = ?").get(req.params.id);
   if (!cur) return res.status(404).json({ error: "not found" });
   const f = { ...cur, ...req.body };
-  db.prepare(`UPDATE offers SET title=?, description=?, category=?, price_all=?, discount_pct=?, capacity=?, deal_ends=?, target_group=? WHERE id=?`)
-    .run(f.title, f.description, f.category, f.price_all, f.discount_pct, f.capacity, f.deal_ends, f.target_group, req.params.id);
+  db.prepare(`UPDATE offers SET title=?, description=?, category=?, price_all=?, discount_pct=?, capacity=?, deal_ends=?, target_group=?, image_url=? WHERE id=?`)
+    .run(f.title, f.description, f.category, f.price_all, f.discount_pct, f.capacity, f.deal_ends, f.target_group, f.image_url, req.params.id);
   res.json({ ok: true });
 });
 
@@ -1094,6 +1132,65 @@ app.get("/api/employee/feed", (req, res) => {
 app.get("/api/employee/nearby", (req, res) => {
   res.json(db.prepare(`SELECT ${empOfferCols} FROM offers o JOIN providers p ON p.id = o.provider_id
     WHERE o.is_active=1 AND p.lat IS NOT NULL ORDER BY p.company_name`).all());
+});
+
+// ---- Perxify: swipe-based preference learning ----
+
+// Deck: active offers the employee hasn't swiped yet. Liked-category offers
+// float up so the deck keeps feeding what they're into.
+app.get("/api/perxify/deck", requireAuth(), (req, res) => {
+  const eid = req.authUser.id;
+  res.json(db.prepare(`SELECT ${empOfferCols},
+      (SELECT COALESCE(SUM(CASE action WHEN 'superlike' THEN 3 WHEN 'like' THEN 1 WHEN 'dislike' THEN -2 ELSE 0 END),0)
+       FROM swipes s WHERE s.employee_id=? AND s.category=o.category) AS cat_score
+    FROM offers o JOIN providers p ON p.id = o.provider_id
+    WHERE o.is_active=1
+      AND o.id NOT IN (SELECT offer_id FROM swipes WHERE employee_id=?)
+    ORDER BY cat_score DESC, o.is_featured DESC, RANDOM() LIMIT 30`).all(eid, eid));
+});
+
+// Record a swipe. Upsert so re-swiping the same card just updates the action.
+app.post("/api/perxify/swipe", requireAuth(), (req, res) => {
+  const eid = req.authUser.id;
+  const { offer_id, action } = req.body;
+  if (!offer_id || !["like", "dislike", "superlike", "skip"].includes(action))
+    return res.status(400).json({ error: "offer_id and valid action required" });
+  const cat = db.prepare("SELECT category FROM offers WHERE id=?").get(offer_id)?.category;
+  db.prepare(`INSERT INTO swipes (employee_id,offer_id,category,action) VALUES (?,?,?,?)
+    ON CONFLICT(employee_id,offer_id) DO UPDATE SET action=excluded.action, created_at=datetime('now')`)
+    .run(eid, offer_id, cat, action);
+  res.json({ ok: true });
+});
+
+// Preference profile + recs: category weights from swipes, top offers in the
+// employee's favored categories (excluding disliked + already-swiped).
+app.get("/api/perxify/recommendations", requireAuth(), (req, res) => {
+  const eid = req.authUser.id;
+  const weights = db.prepare(`SELECT category,
+      SUM(CASE action WHEN 'superlike' THEN 3 WHEN 'like' THEN 1 WHEN 'dislike' THEN -2 ELSE 0 END) AS weight,
+      SUM(action IN ('like','superlike')) AS likes
+    FROM swipes WHERE employee_id=? GROUP BY category ORDER BY weight DESC`).all(eid);
+  const liked = weights.filter((w) => w.weight > 0);
+  const offers = liked.length
+    ? db.prepare(`SELECT ${empOfferCols} FROM offers o JOIN providers p ON p.id=o.provider_id
+        WHERE o.is_active=1 AND o.category IN (${liked.map(() => "?").join(",")})
+          AND o.id NOT IN (SELECT offer_id FROM swipes WHERE employee_id=? AND action='dislike')
+        ORDER BY o.is_featured DESC LIMIT 8`).all(...liked.map((w) => w.category), eid)
+    : [];
+  res.json({ topCategories: liked.map((w) => w.category), weights, offers });
+});
+
+// HR analytics: anonymous category popularity across the company's employees.
+app.get("/api/hr/perxify-analytics", requireAuth("hr"), (req, res) => {
+  const company_id = req.authUser.company_id || 1;
+  res.json(db.prepare(`SELECT s.category,
+      SUM(s.action IN ('like','superlike')) AS likes,
+      SUM(s.action='superlike') AS superlikes,
+      SUM(s.action='dislike') AS dislikes,
+      COUNT(*) AS total
+    FROM swipes s JOIN users u ON u.id=s.employee_id
+    WHERE u.company_id=? AND s.category IS NOT NULL
+    GROUP BY s.category ORDER BY likes DESC`).all(company_id));
 });
 
 // Bookmarks

@@ -29,7 +29,8 @@ CREATE TABLE IF NOT EXISTS offers (
   id INTEGER PRIMARY KEY, provider_id INTEGER, title TEXT, description TEXT,
   category TEXT, price_all INTEGER, is_active INTEGER DEFAULT 1, is_featured INTEGER DEFAULT 0,
   discount_pct INTEGER DEFAULT 0, capacity INTEGER DEFAULT 0,
-  deal_ends TEXT, target_group TEXT
+  deal_ends TEXT, target_group TEXT,
+  image_url TEXT  -- data URL (base64) or http link; shown on employee cards
 );
 CREATE TABLE IF NOT EXISTS packages (
   id INTEGER PRIMARY KEY, provider_id INTEGER, title TEXT, description TEXT, total_price_all INTEGER
@@ -123,10 +124,30 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 CREATE TABLE IF NOT EXISTS push_tokens (
   id INTEGER PRIMARY KEY, user_id INTEGER, token TEXT UNIQUE, created_at TEXT DEFAULT (datetime('now'))
 );
+-- Perxify: swipe-based preference signals. action: like|dislike|superlike|skip.
+-- One row per (employee, offer) — re-swiping updates the action.
+CREATE TABLE IF NOT EXISTS swipes (
+  id INTEGER PRIMARY KEY, employee_id INTEGER, offer_id INTEGER, category TEXT,
+  action TEXT NOT NULL, created_at TEXT DEFAULT (datetime('now')),
+  UNIQUE(employee_id, offer_id)
+);
 `);
 
+// Lightweight migrations: add columns to pre-existing tables (CREATE IF NOT EXISTS
+// won't alter a table that already exists). Safe to run every startup.
+function addColumn(table, col, type) {
+  const has = db.prepare(`PRAGMA table_info(${table})`).all().some((c) => c.name === col);
+  if (!has) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${type}`);
+}
+addColumn("offers", "image_url", "TEXT");
+// Gifting: support gifting products/bundles, not just credit.
+addColumn("gifts", "kind", "TEXT");        // 'credit' | 'offer' | 'bundle'
+addColumn("gifts", "offer_id", "INTEGER");
+addColumn("gifts", "package_id", "INTEGER");
+addColumn("selections", "gifted_by", "INTEGER"); // sender id when a selection is a gift
+
 function seed() {
-  const tables = ["push_tokens","subscriptions","audit_log","meetings","bookmarks","reviews","recruitment_perks","offices","partnerships","benefit_policies",
+  const tables = ["swipes","push_tokens","subscriptions","audit_log","meetings","bookmarks","reviews","recruitment_perks","offices","partnerships","benefit_policies",
     "vendor_searches","auto_rules","flash_drops","gifts",
     "challenge_progress","challenges","transactions","selection_items",
     "selections","package_offers","packages","offers","providers","users","departments","companies"];
@@ -189,6 +210,40 @@ function seed() {
       ["Course Credit", "Credit for any single course", 5000],
       ["Annual Pass", "Full year, all courses", 15000],
     ]],
+    ["FlexFit Studio", "💪 Fitness", "Boutique HIIT & yoga classes", [
+      ["Class Pack x10", "Ten drop-in classes, any time", 4500],
+      ["Yoga Unlimited", "Unlimited yoga for a month", 5500],
+      ["Personal Training x5", "Five 1-on-1 coaching sessions", 9500],
+    ]],
+    ["Padam Bistro", "🍽️ Food", "Modern Mediterranean dining", [
+      ["Coffee Pass", "20 specialty coffees", 2000],
+      ["Team Lunch x8", "Eight shared team lunches", 5600],
+    ]],
+    ["Aura Wellness Center", "🧘 Wellness", "Sauna, float tank, and recovery", [
+      ["Float Session", "90-minute sensory float", 3200],
+      ["Recovery Day Pass", "Sauna + ice bath + lounge", 2500],
+      ["Mindfulness Course", "4-week guided meditation program", 6000],
+    ]],
+    ["Adriatik Tours", "✈️ Travel", "Curated trips along the coast", [
+      ["Saranda Getaway", "Three nights, sea view", 11000],
+      ["Theth Hiking Trip", "Guided weekend in the Alps", 9000],
+    ]],
+    ["Vodafone Albania", "📱 Telecom", "Mobile & home internet", [
+      ["Smart 20GB", "Monthly 20GB + free social apps", 1800],
+      ["Home Fiber", "Unlimited home internet, 1 month", 2800],
+    ]],
+    ["CodeAcademy Tirana", "📚 Education", "Tech bootcamps & language courses", [
+      ["English Course", "8-week business English", 7000],
+      ["Coding Bootcamp Seat", "Weekend web-dev intensive", 18000],
+      ["Language Voucher", "Credit for any language class", 4000],
+    ]],
+    ["BookNook", "📚 Education", "Audiobooks & e-learning library", [
+      ["Annual Library", "Full year of audiobooks & e-books", 3000],
+    ]],
+    ["GlowSkin Clinic", "🧘 Wellness", "Skincare & aesthetic treatments", [
+      ["Facial Treatment", "60-minute deep-cleanse facial", 3500],
+      ["Skin Care Package", "Three sessions, full regimen", 8500],
+    ]],
   ];
 
   // Provider profile extras keyed by name (logo, tagline, address, phone, lat, lng — real Tirana coords).
@@ -199,6 +254,14 @@ function seed() {
     "Juvenilja Travel": ["✈️", "Discover Albania & beyond.", "Rr. e Durrësit 45, Tirana", "+355 69 200 1004", 41.3280, 19.8090],
     "ALBtelecom": ["📱", "Always connected.", "Autostrada Tiranë-Durrës, Km 7", "+355 69 200 1005", 41.3350, 19.7900],
     "Shkolla Digjitale": ["📚", "Learn skills that matter.", "Rr. Kavajës 21, Tirana", "+355 69 200 1006", 41.3210, 19.8050],
+    "FlexFit Studio": ["🏋️", "Sweat. Stretch. Repeat.", "Rr. Ibrahim Rugova 8, Tirana", "+355 69 200 1007", 41.3225, 19.8175],
+    "Padam Bistro": ["☕", "Where the city meets.", "Rr. Vaso Pasha 14, Tirana", "+355 69 200 1008", 41.3215, 19.8205],
+    "Aura Wellness Center": ["💆", "Reset your body and mind.", "Rr. e Kavajës 132, Tirana", "+355 69 200 1009", 41.3185, 19.8020],
+    "Adriatik Tours": ["🏖️", "The coast is calling.", "Rr. Sami Frashëri 22, Tirana", "+355 69 200 1010", 41.3260, 19.8140],
+    "Vodafone Albania": ["📶", "Together we can.", "Rr. Dëshmorët e 4 Shkurtit, Tirana", "+355 69 200 1011", 41.3290, 19.8210],
+    "CodeAcademy Tirana": ["💻", "Build your future.", "Rr. Brigada VIII 5, Tirana", "+355 69 200 1012", 41.3170, 19.8195],
+    "BookNook": ["📖", "Stories on the go.", "Rr. Themistokli Gërmenji 3, Tirana", "+355 69 200 1013", 41.3200, 19.8230],
+    "GlowSkin Clinic": ["✨", "Radiance, restored.", "Rr. Abdyl Frashëri 18, Tirana", "+355 69 200 1014", 41.3192, 19.8158],
   };
 
   const insUser = db.prepare("INSERT INTO users (name,role,company_id) VALUES (?,?,1)");
@@ -326,8 +389,10 @@ function seed() {
 
   // Auto-approval guardrails (low-risk categories under a cap)
   const insRule = db.prepare("INSERT INTO auto_rules (company_id,category,max_amount,enabled) VALUES (1,?,?,?)");
-  insRule.run("📱 Telecom", 2000, 1);
-  insRule.run("🍽️ Food", 4500, 1);
+  // Seeded disabled — all requests go to manual HR approval by default.
+  // Admins re-enable per-category in the HR dashboard.
+  insRule.run("📱 Telecom", 2000, 0);
+  insRule.run("🍽️ Food", 4500, 0);
   insRule.run("💪 Fitness", 4000, 0);
 
   // Vendor demand signals (employee searches → provider matching)

@@ -6,7 +6,9 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "backgroundColor": "#C1D9DE",
+    "icon": "./assets/icon.png",
     "splash": {
+      "image": "./assets/splash.png",
       "backgroundColor": "#013137",
       "resizeMode": "contain"
     },
@@ -18,6 +20,7 @@
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#013137"
       },
       "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]

@@ -1,14 +1,15 @@
 // Real Gemini call if GEMINI_API_KEY set, else deterministic mock matching demo script.
 const MODEL = "gemini-3-flash-preview";
 
-async function concierge({ message, budget_remaining, catalog }) {
+async function concierge({ message, budget_remaining, catalog, lang }) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return mock(message, budget_remaining, catalog);
 
-  const system = `You are a friendly benefits concierge for Perx, an employee benefits marketplace in Albania.
+  const system = `You are Exodus, a friendly benefits concierge for Perx, an employee benefits marketplace in Albania.
 The employee has ${budget_remaining} ALL remaining this month.
 Catalog: ${JSON.stringify(catalog)}
 Recommend exactly 2-3 offers. Stay within budget. One warm sentence then recommendations.
+${lang === "sq" ? "Reply in Albanian (Shqip)." : "Reply in English."}
 Respond ONLY in JSON:
 { "message": string, "recommendations": [{ "offer_id", "title", "provider", "price_all", "reason" }] }`;
 

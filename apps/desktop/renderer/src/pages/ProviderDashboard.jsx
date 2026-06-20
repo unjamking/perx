@@ -10,7 +10,7 @@ import Logout from "../components/Logout.jsx";
 import { api, fmt, DEMO, session } from "../lib/api.js";
 import {
   LayoutGrid, Sparkles, Tag, Package, CalendarClock, BarChart3, Star, MessageSquare,
-  Store, CreditCard, Plus, Trash2, X, Pencil, Send, Download,
+  Store, CreditCard, Plus, Trash2, X, Pencil, Send, Download, Image as ImageIcon,
 } from "lucide-react";
 import { printReport } from "../lib/report.js";
 import s from "./HRDashboard.module.css";
@@ -302,9 +302,20 @@ function OfferEditor({ offer, onClose, onSaved }) {
   const [f, setF] = useState(offer ? {
     title: offer.title, description: offer.description || "", category: offer.category, price_all: offer.price_all,
     discount_pct: offer.discount_pct || 0, capacity: offer.capacity || 0, deal_ends: offer.deal_ends || "", target_group: offer.target_group || "",
-  } : blankOffer);
+    image_url: offer.image_url || "",
+  } : { ...blankOffer, image_url: "" });
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
+
+  // Read picked file to a base64 data URL stored on the offer.
+  const pickImage = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { alert("Image too large (max 5MB)."); return; }
+    const reader = new FileReader();
+    reader.onload = () => set("image_url", reader.result);
+    reader.readAsDataURL(file);
+  };
 
   const save = async (e) => {
     e.preventDefault();
@@ -314,6 +325,7 @@ function OfferEditor({ offer, onClose, onSaved }) {
       title: f.title, description: f.description, category: f.category, price_all: Number(f.price_all),
       discount_pct: Number(f.discount_pct) || 0, capacity: Number(f.capacity) || 0,
       deal_ends: f.deal_ends || null, target_group: f.target_group || null,
+      image_url: f.image_url || null,
     };
     try {
       if (offer) await api.updateProviderOffer(offer.id, body);
@@ -334,6 +346,22 @@ function OfferEditor({ offer, onClose, onSaved }) {
         <form onSubmit={save} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <Field label="Title"><input className="input" value={f.title} onChange={(e) => set("title", e.target.value)} /></Field>
           <Field label="Description"><textarea className="input" rows={3} value={f.description} onChange={(e) => set("description", e.target.value)} /></Field>
+          <Field label="Photo">
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              {f.image_url ? (
+                <img src={f.image_url} alt="" style={{ width: 96, height: 72, objectFit: "cover", borderRadius: 10, border: "1px solid var(--border)" }} />
+              ) : (
+                <div style={{ width: 96, height: 72, borderRadius: 10, border: "1px dashed var(--border)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)", fontSize: 12 }}>No photo</div>
+              )}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label className={s.iconStar} style={{ cursor: "pointer", padding: "8px 14px", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <ImageIcon size={16} color="var(--accent)" /> {f.image_url ? "Change" : "Upload"}
+                  <input type="file" accept="image/*" onChange={pickImage} style={{ display: "none" }} />
+                </label>
+                {f.image_url ? <button type="button" onClick={() => set("image_url", "")} style={{ background: "none", border: "none", color: "#dc3545", fontSize: 12, cursor: "pointer", textAlign: "left" }}>Remove</button> : null}
+              </div>
+            </div>
+          </Field>
           <div style={{ display: "flex", gap: 10 }}>
             <Field label="Category">
               <select className="input" value={f.category} onChange={(e) => set("category", e.target.value)}>

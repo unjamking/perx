@@ -8,11 +8,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { C, R, shadow, fmt } from "../theme";
 import { api, EMPLOYEE_ID } from "../api";
 import { useCart } from "../CartContext";
+import { useLang } from "../i18n";
+import { Bounce } from "../components";
 
-export default function Concierge() {
+export default function Concierge({ navigation }) {
   const cart = useCart();
+  const { t, lang } = useLang();
   const [msgs, setMsgs] = useState([
-    { role: "ai", text: "Hi! I'm your Perx concierge. Tell me what you're after — relaxing, fitness, food, travel — and your budget. 🌊" },
+    { role: "ai", text: t("exodusGreeting") },
   ]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
@@ -25,10 +28,10 @@ export default function Concierge() {
     setMsgs((m) => [...m, { role: "user", text }]);
     setTyping(true);
     try {
-      const res = await api.concierge(text, EMPLOYEE_ID);
+      const res = await api.concierge(text, EMPLOYEE_ID, lang);
       setMsgs((m) => [...m, { role: "ai", text: res.message, offers: res.recommendations }]);
     } catch {
-      setMsgs((m) => [...m, { role: "ai", text: "Sorry, I had trouble there. Try again?" }]);
+      setMsgs((m) => [...m, { role: "ai", text: t("conciergeError") }]);
     } finally {
       setTyping(false);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
@@ -40,8 +43,13 @@ export default function Concierge() {
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <View style={s.header}>
-        <Text style={s.headerTitle}>AI Concierge</Text>
-        <Text style={s.headerSub}>Powered by Gemini</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={s.headerTitle}>Exodus</Text>
+          <Text style={s.headerSub}>{t("exodusSub")}</Text>
+        </View>
+        <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
+          <Ionicons name="close" size={26} color="#fff" />
+        </Pressable>
       </View>
 
       <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 16, gap: 12 }}
@@ -55,10 +63,10 @@ export default function Concierge() {
       </ScrollView>
 
       <View style={s.inputBar}>
-        <TextInput style={s.input} placeholder="something relaxing under 5,000 ALL"
+        <TextInput style={s.input} placeholder={t("conciergePh")}
           placeholderTextColor={C.textSecondary} value={input} onChangeText={setInput}
           onSubmitEditing={send} returnKeyType="send" />
-        <Pressable style={s.sendBtn} onPress={send}><Ionicons name="send" size={18} color="#fff" /></Pressable>
+        <Bounce style={s.sendBtn} scale={0.85} onPress={send}><Ionicons name="send" size={18} color="#fff" /></Bounce>
       </View>
     </KeyboardAvoidingView>
     </SafeAreaView>
@@ -89,7 +97,7 @@ function Bubble({ m, onAdd }) {
 }
 
 const s = StyleSheet.create({
-  header: { backgroundColor: C.dark, padding: 16, paddingTop: 12 },
+  header: { backgroundColor: C.dark, padding: 16, paddingTop: 12, flexDirection: "row", alignItems: "center" },
   headerTitle: { color: C.textOnDark, fontWeight: "800", fontSize: 16 },
   headerSub: { color: C.textOnDark, opacity: 0.6, fontSize: 12 },
   bubble: { padding: 12, borderRadius: 16, ...shadow },

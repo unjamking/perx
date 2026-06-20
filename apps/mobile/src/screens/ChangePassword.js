@@ -4,10 +4,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { C, R, shadow } from "../theme";
 import { useAuth } from "../AuthContext";
+import { useLang } from "../i18n";
 
 // Forced new-password screen for HR-provisioned accounts.
 export default function ChangePassword() {
   const { changePassword, logout } = useAuth();
+  const { t } = useLang();
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
   const [err, setErr] = useState("");
@@ -15,13 +17,13 @@ export default function ChangePassword() {
 
   const submit = async () => {
     setErr("");
-    if (next.length < 6) { setErr("Password must be at least 6 characters."); return; }
-    if (next !== confirm) { setErr("Passwords don't match."); return; }
+    if (next.length < 6) { setErr(t("pwTooShort")); return; }
+    if (next !== confirm) { setErr(t("pwMismatch")); return; }
     setBusy(true);
     try {
       const e = await changePassword(next);
       if (e) setErr(e);
-    } catch { setErr("Couldn't reach the server."); }
+    } catch { setErr(t("serverUnreachable")); }
     finally { setBusy(false); }
   };
 
@@ -29,16 +31,16 @@ export default function ChangePassword() {
     <SafeAreaView style={{ flex: 1, backgroundColor: C.dark }}>
       <KeyboardAvoidingView style={{ flex: 1, justifyContent: "center", padding: 24 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={s.card}>
-          <Text style={s.h2}>Set a new password</Text>
-          <Text style={s.sub}>Your account uses a temporary password. Choose a new one to continue.</Text>
-          <Field placeholder="New password" value={next} onChange={setNext} />
-          <Field placeholder="Confirm new password" value={confirm} onChange={setConfirm} />
+          <Text style={s.h2}>{t("setNewPassword")}</Text>
+          <Text style={s.sub}>{t("tempPasswordMsg")}</Text>
+          <Field placeholder={t("newPasswordPh")} value={next} onChange={setNext} />
+          <Field placeholder={t("confirmPasswordPh")} value={confirm} onChange={setConfirm} />
           {err ? <Text style={s.err}>{err}</Text> : null}
           <Pressable style={({ pressed }) => [s.btn, busy && { opacity: 0.6 }, pressed && { opacity: 0.85 }]} onPress={submit} disabled={busy}>
-            <Text style={s.btnText}>{busy ? "Saving…" : "Save Password"}</Text>
+            <Text style={s.btnText}>{busy ? t("saving") : t("savePassword")}</Text>
           </Pressable>
           <Pressable onPress={logout} style={{ marginTop: 14 }}>
-            <Text style={s.link}>Cancel & sign out</Text>
+            <Text style={s.link}>{t("cancelSignOut")}</Text>
           </Pressable>
         </View>
       </KeyboardAvoidingView>

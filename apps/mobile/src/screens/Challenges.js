@@ -4,10 +4,12 @@ import { useFocusEffect } from "@react-navigation/native";
 import Animated, { FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { C, R, shadow, fmt } from "../theme";
-import { ProgressBar } from "../components";
+import { ProgressBar, Bounce, ScreenFade } from "../components";
 import { api, EMPLOYEE_ID } from "../api";
+import { useLang } from "../i18n";
 
 export default function Challenges() {
+  const { t } = useLang();
   const [challenges, setChallenges] = useState([]);
   const [achievements, setAchievements] = useState([]);
 
@@ -23,28 +25,29 @@ export default function Challenges() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top"]}>
-      <Text style={s.h1}>Challenges</Text>
+      <ScreenFade>
+      <Text style={s.h1}>{t("challenges")}</Text>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 18, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         {/* streak banner */}
-        <Animated.View entering={FadeInUp} style={s.streakCard}>
+        <View style={s.streakCard}>
           <View>
             <Text style={s.streakNum}>🔥 {streak}</Text>
-            <Text style={s.streakLabel}>Active challenges</Text>
+            <Text style={s.streakLabel}>{t("activeChallenges")}</Text>
           </View>
           <View style={s.streakDivider} />
           <View>
             <Text style={s.streakNum}>🏅 {unlocked}/{achievements.length}</Text>
-            <Text style={s.streakLabel}>Achievements</Text>
+            <Text style={s.streakLabel}>{t("achievements")}</Text>
           </View>
-        </Animated.View>
+        </View>
 
         {/* team goals */}
         <View>
-          <Text style={s.h3}>Team Goals</Text>
+          <Text style={s.h3}>{t("teamGoals")}</Text>
           {challenges.map((c, i) => {
             const pct = c.participants ? Math.round((c.completed_count / c.participants) * 100) : 0;
             return (
-              <Animated.View key={c.id} entering={FadeInUp.delay(i * 60)} style={s.challengeCard}>
+              <View key={c.id} style={s.challengeCard}>
                 <View style={s.row}>
                   <Text style={s.challengeTitle}>{c.title}</Text>
                   <View style={s.bonusTag}><Text style={s.bonusText}>{fmt(c.bonus_all)}</Text></View>
@@ -52,38 +55,39 @@ export default function Challenges() {
                 <Text style={s.muted}>{c.description}</Text>
                 <View style={{ marginTop: 10 }}>
                   <View style={s.progLabel}>
-                    <Text style={s.progText}>Team progress</Text>
-                    <Text style={s.progText}>{c.completed_count}/{c.participants} done</Text>
+                    <Text style={s.progText}>{t("teamProgress")}</Text>
+                    <Text style={s.progText}>{c.completed_count}/{c.participants} {t("doneCount")}</Text>
                   </View>
                   <ProgressBar pct={pct} />
                 </View>
                 {c.completed ? (
-                  <View style={s.doneTag}><Text style={s.doneText}>✓ Completed</Text></View>
+                  <View style={s.doneTag}><Text style={s.doneText}>{t("completed")}</Text></View>
                 ) : c.joined ? (
-                  <View style={s.joinedTag}><Text style={s.joinedText}>● Joined — keep going!</Text></View>
+                  <View style={s.joinedTag}><Text style={s.joinedText}>{t("joinedKeepGoing")}</Text></View>
                 ) : (
-                  <Pressable style={s.joinBtn} onPress={() => join(c.id)}><Text style={s.joinText}>Join Challenge</Text></Pressable>
+                  <Bounce style={s.joinBtn} onPress={() => join(c.id)}><Text style={s.joinText}>{t("joinChallenge")}</Text></Bounce>
                 )}
-              </Animated.View>
+              </View>
             );
           })}
-          {challenges.length === 0 && <Text style={s.muted}>No active challenges.</Text>}
+          {challenges.length === 0 && <Text style={s.muted}>{t("noChallenges")}</Text>}
         </View>
 
         {/* rewards / achievements */}
         <View>
-          <Text style={s.h3}>Achievements & Rewards</Text>
+          <Text style={s.h3}>{t("achievementsRewards")}</Text>
           <View style={s.badgeGrid}>
             {achievements.map((a) => (
               <View key={a.key} style={[s.badge, !a.unlocked && s.badgeLocked]}>
                 <Text style={{ fontSize: 30, opacity: a.unlocked ? 1 : 0.35 }}>{a.emoji}</Text>
                 <Text style={[s.badgeTitle, !a.unlocked && { color: C.textSecondary }]}>{a.title}</Text>
-                <Text style={s.badgeHint}>{a.unlocked ? "Unlocked" : (a.progress || a.hint)}</Text>
+                <Text style={s.badgeHint}>{a.unlocked ? t("unlocked") : (a.progress || a.hint)}</Text>
               </View>
             ))}
           </View>
         </View>
       </ScrollView>
+      </ScreenFade>
     </SafeAreaView>
   );
 }
