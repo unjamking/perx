@@ -10,9 +10,25 @@
       "backgroundColor": "#013137",
       "resizeMode": "contain"
     },
-    "ios": { "supportsTablet": false },
+    "ios": {
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Perx uses your location to show nearby benefit providers."
+      }
+    },
     "android": {
-      "adaptiveIcon": { "backgroundColor": "#013137" }
-    }
+      "adaptiveIcon": {
+        "backgroundColor": "#013137"
+      },
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+    },
+    "plugins": [
+      "expo-font",
+      "expo-notifications",
+      [
+        "expo-location",
+        { "locationWhenInUsePermission": "Perx uses your location to show nearby benefit providers." }
+      ]
+    ]
   }
 }

@@ -1,5 +1,5 @@
 // Real Gemini call if GEMINI_API_KEY set, else deterministic mock matching demo script.
-const MODEL = "gemini-2.0-flash";
+const MODEL = "gemini-3-flash-preview";
 
 async function concierge({ message, budget_remaining, catalog }) {
   const key = process.env.GEMINI_API_KEY;

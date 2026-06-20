@@ -1,60 +1,85 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, Users, Store } from "lucide-react";
+import { Mail, Lock } from "lucide-react";
 import { motion, ShimmerButton } from "../components/ui.jsx";
-import { session } from "../lib/api.js";
+import { api, session, roleRoute } from "../lib/api.js";
 
-const ROLES = [
-  { value: "employer", title: "Employer", desc: "Approve & manage budgets", icon: Building2, route: "/employer" },
-  { value: "hr", title: "HR", desc: "Insights, compliance, nudges", icon: Users, route: "/hr" },
-  { value: "provider", title: "Provider", desc: "List offers & track payments", icon: Store, route: "/provider" },
+const DEMO = [
+  { label: "Employer", email: "manager@techtirana.al" },
+  { label: "HR", email: "elira@techtirana.al" },
+  { label: "Provider", email: "owner@zenspatirana.al" },
 ];
-
-const DEFAULT_NAME = { employer: "Manager", hr: "Elira", provider: "Zen Spa" };
 
 export default function Login() {
   const nav = useNavigate();
-  const [name, setName] = useState("");
-  const [role, setRole] = useState("employer");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  function enter() {
-    const r = ROLES.find((x) => x.value === role);
-    session.set({ name: name.trim() || DEFAULT_NAME[role], role });
-    nav(r.route);
+  async function submit(e) {
+    e?.preventDefault();
+    setErr("");
+    if (!email || !password) { setErr("Please enter your email and password."); return; }
+    setBusy(true);
+    try {
+      const res = await api.login({ email, password });
+      if (res.error) { setErr(res.error); return; }
+      session.set({ token: res.token, user: res.user });
+      nav(res.user.must_change_password ? "/change-password" : (roleRoute[res.user.role] || "/employer"));
+    } catch {
+      setErr("Could not reach the server. Is the backend running?");
+    } finally {
+      setBusy(false);
+    }
   }
+
+  const fillDemo = (em) => { setEmail(em); setPassword("perx1234"); setErr(""); };
 
   return (
     <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 20 }}>
-      <motion.div className="card" style={{ width: "100%", maxWidth: 460, padding: 32 }}
+      <motion.div className="card" style={{ width: "100%", maxWidth: 440, padding: 32 }}
         initial={{ opacity: 0, y: 24, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}>
-        <h1 style={{ color: "var(--text)", fontSize: 28, marginBottom: 4 }}>Welcome to Perx</h1>
-        <p className="muted" style={{ marginBottom: 24 }}>Pick a role to explore the demo.</p>
+        <div style={{ fontSize: 30, fontWeight: 800, color: "var(--accent)", marginBottom: 2 }}>Perx</div>
+        <h1 style={{ color: "var(--text)", fontSize: 22, marginBottom: 4 }}>Welcome back</h1>
+        <p className="muted" style={{ marginBottom: 22 }}>Sign in to your dashboard.</p>
 
-        <input className="input" placeholder="Your name" value={name}
-          onChange={(e) => setName(e.target.value)} style={{ marginBottom: 20 }} />
+        <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <InputRow icon={Mail} type="email" placeholder="Email" value={email} onChange={setEmail} />
+          <InputRow icon={Lock} type="password" placeholder="Password" value={password} onChange={setPassword} />
+          {err && <div style={{ color: "#b3261e", fontSize: 13, fontWeight: 600 }}>{err}</div>}
+          <ShimmerButton style={{ width: "100%" }} disabled={busy}>
+            {busy ? "Signing in…" : "Sign In →"}
+          </ShimmerButton>
+        </form>
 
-        <div className="grid-2" style={{ marginBottom: 24 }}>
-          {ROLES.map((r) => {
-            const Icon = r.icon;
-            const on = role === r.value;
-            return (
-              <motion.button key={r.value} whileTap={{ scale: 0.97 }} onClick={() => setRole(r.value)}
-                style={{
-                  textAlign: "left", padding: 16, borderRadius: 16,
-                  border: `2px solid ${on ? "var(--accent)" : "var(--border)"}`,
-                  background: on ? "rgba(193,217,222,.5)" : "#fff",
-                  display: "flex", flexDirection: "column", gap: 6,
-                }}>
-                <Icon color={on ? "var(--accent)" : "var(--text-secondary)"} />
-                <span style={{ fontWeight: 700, color: "var(--text)" }}>{r.title}</span>
-                <span className="muted" style={{ fontSize: 12 }}>{r.desc}</span>
-              </motion.button>
-            );
-          })}
+        <p className="muted" style={{ fontSize: 12, marginTop: 16, textAlign: "center" }}>
+          Accounts are created by your HR team. Contact HR if you need access.
+        </p>
+
+        <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
+          <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>Try a demo account (password: perx1234)</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {DEMO.map((d) => (
+              <button key={d.email} onClick={() => fillDemo(d.email)}
+                style={{ fontSize: 12, fontWeight: 600, color: "var(--accent)", cursor: "pointer",
+                  border: "1px solid var(--border)", borderRadius: 99, padding: "6px 12px", background: "#fff" }}>
+                {d.label}
+              </button>
+            ))}
+          </div>
         </div>
-
-        <ShimmerButton style={{ width: "100%" }} onClick={enter}>Enter Perx →</ShimmerButton>
       </motion.div>
+    </div>
+  );
+}
+
+function InputRow({ icon: Icon, type = "text", placeholder, value, onChange }) {
+  return (
+    <div style={{ position: "relative" }}>
+      <Icon size={17} color="var(--text-secondary)" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }} />
+      <input className="input" type={type} placeholder={placeholder} value={value}
+        onChange={(e) => onChange(e.target.value)} style={{ paddingLeft: 42 }} />
     </div>
   );
 }

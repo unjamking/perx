@@ -39,7 +39,13 @@
   flex-direction: column;
   gap: 6px;
   flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
+
+/* Thin scrollbar for the nav so long tab lists don't clip the company label. */
+.nav::-webkit-scrollbar { width: 6px; }
+.nav::-webkit-scrollbar-thumb { background: rgba(193, 217, 222, 0.2); border-radius: 99px; }
 
 .navLink {
   position: relative;
@@ -79,11 +85,12 @@
 }
 
 .companyLabel {
-  padding: 0 28px;
+  padding: 16px 28px 0;
   color: var(--text-on-dark);
   font-size: 13px;
   font-weight: 600;
   opacity: 0.7;
+  flex-shrink: 0;
 }
 
 .mainContent {
@@ -860,4 +867,494 @@
     stroke-dasharray: 90, 150;
     stroke-dashoffset: -124;
   }
+}
+
+/* ── Grouped nav ── */
+.navGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 14px;
+}
+
+.navGroupLabel {
+  padding: 4px 28px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(193, 217, 222, 0.4);
+}
+
+.navLinkInner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── Shared card title ── */
+.cardTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--dark);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bigFigure {
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+/* ── Overview split (score + forecast) ── */
+.overviewSplit {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 24px;
+  align-items: stretch;
+}
+
+.scoreCard {
+  background: #ffffff;
+  border-radius: var(--radius-card);
+  padding: 24px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.scoreLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.scoreHint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* ── Workforce pulse ── */
+.pulseHeader {
+  display: flex;
+  gap: 24px;
+  align-items: stretch;
+}
+
+/* ── Provider matching grid ── */
+.matchGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.matchCard {
+  background: #ffffff;
+  border-radius: var(--radius-card);
+  padding: 20px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.matchCard:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-hover);
+}
+
+.matchTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.matchCat {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--dark);
+}
+
+.matchTagGap {
+  background: rgba(220, 53, 69, 0.12);
+  color: #dc3545;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--radius-tag);
+}
+
+.matchTagWarn {
+  background: rgba(92, 147, 150, 0.15);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--radius-tag);
+}
+
+.matchStats {
+  display: flex;
+  gap: 20px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.matchStats strong {
+  color: var(--accent);
+  font-size: 18px;
+}
+
+.matchQueries {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.queryChip {
+  background: #f8fafb;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-tag);
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ── Misc ── */
+.giftAmount {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.successNote {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a8754;
+}
+
+/* ── Strategy recommendation cards ── */
+.stratCard {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 18px 20px;
+  box-shadow: var(--shadow);
+}
+
+.stratPriority {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 5px 12px;
+  border-radius: var(--radius-tag);
+}
+
+.prioHigh { background: rgba(220, 53, 69, 0.12); color: #dc3545; }
+.prioMed { background: rgba(92, 147, 150, 0.18); color: var(--accent); }
+.prioLow { background: rgba(26, 135, 84, 0.12); color: #1a8754; }
+
+.stratTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--dark);
+  margin-bottom: 4px;
+}
+
+.stratDetail {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+/* ── Icon button (star/trash inline) ── */
+.iconStar {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.iconStar:hover {
+  background: #f1f4f6;
+}
+
+/* ── Employer branding preview card ── */
+.brandPreview {
+  background: #ffffff;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+  height: fit-content;
+}
+
+.brandLogo {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+}
+
+.brandPerks {
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 10px 16px;
+  border-radius: var(--radius-btn);
+  width: 100%;
+  text-align: center;
+}
+
+/* ── Review reply ── */
+.replyBox {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: rgba(33, 94, 104, 0.06);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--dark);
+}
+
+.replyBtn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1.5px solid var(--border);
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.replyBtn:hover {
+  background: #f8fafb;
+  border-color: var(--accent);
+}
+
+/* ── Credential card (HR user management) ── */
+.credCard {
+  margin-top: 14px;
+  background: rgba(26, 135, 84, 0.06);
+  border: 1.5px solid rgba(26, 135, 84, 0.3);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.credTitle {
+  font-weight: 700;
+  font-size: 14px;
+  color: #1a8754;
+}
+
+.credRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.credRow code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+  color: var(--dark);
+  background: #fff;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.credCopyBtn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-btn);
+  padding: 9px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.credDismiss {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  padding: 9px 16px;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+/* ── Loading skeleton ── */
+.skeletonRow {
+  height: 16px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #eef3f4 25%, #f6f9fa 50%, #eef3f4 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.3s infinite;
+}
+
+.skelCard {
+  height: 110px;
+  border-radius: var(--radius-card);
+  background: linear-gradient(90deg, #eef3f4 25%, #f6f9fa 50%, #eef3f4 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.3s infinite;
+  border: 1px solid var(--border);
+}
+
+.skelBlock {
+  height: 260px;
+  border-radius: var(--radius-card);
+  background: linear-gradient(90deg, #eef3f4 25%, #f6f9fa 50%, #eef3f4 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.3s infinite;
+  border: 1px solid var(--border);
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Calendar ── */
+.calLayout {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.calHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.calNav {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--accent);
+  transition: background 0.15s;
+}
+
+.calNav:hover { background: #f8fafb; }
+
+.calGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calDow {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  padding-bottom: 6px;
+}
+
+.calCell {
+  position: relative;
+  aspect-ratio: 1;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #f8fafb;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.calCell:hover { background: #eef3f4; }
+
+.calCellSel {
+  border-color: var(--accent);
+  background: rgba(33, 94, 104, 0.08);
+}
+
+.calCellToday {
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.calDot {
+  position: absolute;
+  bottom: 5px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 99px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
