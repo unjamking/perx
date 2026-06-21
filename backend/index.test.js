@@ -69,6 +69,9 @@ test("HR can list + create users; new user must change password", async () => {
 });
 
 test("auto-approval pays out instantly under an enabled rule", async () => {
+  const { db } = require("./database");
+  db.prepare("UPDATE auto_rules SET enabled = 1 WHERE category = ?").run("📱 Telecom");
+
   const { body } = await login("arta@techtirana.al", "perx1234");
   // Telecom rule: auto-approve <= 2000. Data 10GB = 1500.
   const offers = await (await api("/api/offers", {}, body.token)).json();
@@ -161,3 +164,62 @@ test("change-password clears must-change flag", async () => {
   assert.equal(relog.status, 200);
   assert.equal(relog.body.user.must_change_password, false);
 });
+
+test("employee notifications: blocks anonymous, returns gifts and selection status updates", async () => {
+  // 1. Blocks anonymous
+  const anon = await api("/api/employee/notifications");
+  assert.equal(anon.status, 401);
+
+  // 2. Fetch initial notification count for Besnik
+  const { body: besnik } = await login("besnik@techtirana.al", "perx1234");
+  const initialRes = await api("/api/employee/notifications", {}, besnik.token);
+  assert.equal(initialRes.status, 200);
+  const initialNotifs = await initialRes.json();
+  assert.ok(Array.isArray(initialNotifs));
+
+  // 3. Send a gift from Arta (id 1) to Besnik
+  const { body: arta } = await login("arta@techtirana.al", "perx1234");
+  const giftRes = await api("/api/gifts", {
+    method: "POST",
+    body: JSON.stringify({ to_employee: besnik.user.id, amount_all: 500, note: "Keep it up!" }),
+  }, arta.token);
+  assert.equal(giftRes.status, 200);
+
+  // 4. Fetch notifications again and find the new gift
+  const afterGiftRes = await api("/api/employee/notifications", {}, besnik.token);
+  const afterGiftNotifs = await afterGiftRes.json();
+  assert.ok(afterGiftNotifs.length > initialNotifs.length);
+
+  const giftNotif = afterGiftNotifs.find((n) => n.type === "gift" && n.amount === 500);
+  assert.ok(giftNotif);
+  assert.equal(giftNotif.from_name, "Arta");
+  assert.equal(giftNotif.note, "Keep it up!");
+  assert.match(giftNotif.body, /sent you 500 ALL/);
+
+  // 5. Test selection status notifications
+  const offers = await (await api("/api/offers", {}, besnik.token)).json();
+  const cheap = offers.find((o) => o.price_all <= 2000) || offers[0];
+
+  // Request a benefit (requires approval)
+  const selRes = await api("/api/selections", {
+    method: "POST",
+    body: JSON.stringify({ items: [{ offer_id: cheap.id, price_all: cheap.price_all }] }),
+  }, besnik.token);
+  assert.equal(selRes.status, 200);
+  const selection = await selRes.json();
+
+  // Approve selection via Manager
+  const { body: manager } = await login("manager@techtirana.al", "perx1234");
+  const approveRes = await api(`/api/selections/${selection.id}/approve`, { method: "PUT" }, manager.token);
+  assert.equal(approveRes.status, 200);
+
+  // Fetch notifications again and find the approved benefit status change
+  const finalRes = await api("/api/employee/notifications", {}, besnik.token);
+  const finalNotifs = await finalRes.json();
+  const statusNotif = finalNotifs.find((n) => n.id === `selection-${selection.id}`);
+  assert.ok(statusNotif);
+  assert.equal(statusNotif.type, "selection_status");
+  assert.equal(statusNotif.status, "approved");
+  assert.match(statusNotif.body, /approved/);
+});
+

@@ -3,13 +3,16 @@ import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { C, R, shadow, fmt, cleanCategory } from "../theme";
-import { OfferCard, SectionHeader, ScreenFade, CartPill } from "../components";
+import { OfferCard, SectionHeader, ScreenFade, CartPill, Bounce } from "../components";
 import { api, EMPLOYEE_ID } from "../api";
 import { useCart } from "../CartContext";
 import CartSheet from "../CartSheet";
 import { useLang } from "../i18n";
 import { useAuth } from "../AuthContext";
+
+const ASYNC_KEY = "perx.last_read_notifications";
 
 export default function Home({ navigation }) {
   const cart = useCart();
@@ -18,28 +21,45 @@ export default function Home({ navigation }) {
   const firstName = user?.name?.split(" ")[0] || "";
   const [feed, setFeed] = useState({ featured: [], deals: [], recommended: [] });
   const [notifs, setNotifs] = useState([]);
+  const [lastRead, setLastRead] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
 
   const reload = useCallback(() => {
     api.feed(EMPLOYEE_ID).then(setFeed);
     api.notifications().then(setNotifs);
+    AsyncStorage.getItem(ASYNC_KEY).then((v) => setLastRead(v || "1970-01-01T00:00:00.000Z"));
     cart.refreshBudget();
   }, []);
   useFocusEffect(reload);
 
   const liveNotifs = notifs.filter((n) => n.live);
+  const unreadCount = notifs.filter((n) => n.created_at > lastRead).length;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={["top"]}>
       <ScreenFade>
       <View style={s.topbar}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={s.hi}>{t("hi")} {firstName}</Text>
           <Text style={s.sub}>{t("welcomeBack")}</Text>
         </View>
-        <View style={s.budgetPill}>
-          <Text style={s.budgetLabel}>{t("budgetLeft")}</Text>
-          <Text style={s.budgetText}>{fmt(cart.left)}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <Bounce
+            style={s.bellBtn}
+            scale={0.9}
+            onPress={() => navigation.navigate("NotificationCenter")}
+          >
+            <Ionicons name="notifications-outline" size={22} color={C.accent} />
+            {unreadCount > 0 && (
+              <View style={s.badge}>
+                <Text style={s.badgeText}>{unreadCount}</Text>
+              </View>
+            )}
+          </Bounce>
+          <View style={s.budgetPill}>
+            <Text style={s.budgetLabel}>{t("budgetLeft")}</Text>
+            <Text style={s.budgetText}>{fmt(cart.left)}</Text>
+          </View>
         </View>
       </View>
 
@@ -93,6 +113,37 @@ export default function Home({ navigation }) {
 const s = StyleSheet.create({
   topbar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingTop: 8, paddingBottom: 10 },
   hi: { fontSize: 24, fontWeight: "800", color: C.text },
+  bellBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: C.border,
+    position: "relative",
+    ...shadow,
+  },
+  badge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: "#EF4444",
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: C.bg,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 9,
+    fontWeight: "900",
+  },
   sub: { color: C.textSecondary, fontSize: 13, marginTop: 2 },
   budgetPill: { backgroundColor: C.accent, borderRadius: R.card, paddingHorizontal: 16, paddingVertical: 8, alignItems: "flex-end" },
   budgetLabel: { color: C.textOnDark, fontSize: 10, fontWeight: "600" },

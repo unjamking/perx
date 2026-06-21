@@ -23,6 +23,8 @@ import Concierge from "./src/screens/Concierge";
 import MyBenefits from "./src/screens/MyBenefits";
 import Challenges from "./src/screens/Challenges";
 import Profile from "./src/screens/Profile";
+import NotificationCenter from "./src/screens/NotificationCenter";
+
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -125,6 +127,7 @@ function Root() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Tabs" component={Tabs} />
         <Stack.Screen name="Concierge" component={Concierge} options={{ presentation: "modal" }} />
+        <Stack.Screen name="NotificationCenter" component={NotificationCenter} options={{ presentation: "modal" }} />
       </Stack.Navigator>
     </CartProvider>
   );

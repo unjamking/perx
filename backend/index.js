@@ -1249,19 +1249,106 @@ app.post("/api/employee/bookmarks", (req, res) => {
   res.json({ saved: true });
 });
 
-// Deal notifications: flash drops + featured/discounted offers as a feed.
+// Deal, gift, and request response notifications: flash drops + active discounts + peer gifts + request approval/denial status.
 app.get("/api/employee/notifications", (req, res) => {
-  const { company_id = 1 } = req.query;
+  const employee_id = req.authUser.id;
+  const company_id = req.authUser.company_id || 1;
   const today = new Date().toISOString().slice(0, 10);
+  const notifs = [];
+
+  // 1. Flash drops
   const drops = db.prepare(`SELECT f.*, o.title AS offer_title FROM flash_drops f
     LEFT JOIN offers o ON o.id = f.offer_id WHERE f.company_id = ? ORDER BY f.ends_at DESC`).all(company_id);
-  const notifs = drops.map((d) => ({
-    type: "flash_drop", title: d.title, body: d.description,
-    bonus: d.bonus_all, live: d.ends_at >= today && d.starts_at <= today, when: d.starts_at,
-  }));
-  const deals = db.prepare(`SELECT o.title, p.company_name provider, o.discount_pct
+  for (const d of drops) {
+    notifs.push({
+      id: `drop-${d.id}`,
+      type: "flash_drop",
+      title: d.title,
+      body: d.description,
+      bonus: d.bonus_all,
+      live: d.ends_at >= today && d.starts_at <= today,
+      created_at: d.created_at || d.starts_at,
+    });
+  }
+
+  // 2. Discount deals
+  const deals = db.prepare(`SELECT o.id, o.title, p.company_name provider, o.discount_pct
     FROM offers o JOIN providers p ON p.id = o.provider_id WHERE o.discount_pct > 0 AND o.is_active=1`).all();
-  for (const d of deals) notifs.push({ type: "discount", title: `${d.discount_pct}% off ${d.title}`, body: `Limited deal at ${d.provider}`, live: true });
+  for (const d of deals) {
+    notifs.push({
+      id: `deal-${d.id}`,
+      type: "discount",
+      title: `${d.discount_pct}% off ${d.title}`,
+      body: `Limited deal at ${d.provider}`,
+      live: true,
+      created_at: today,
+    });
+  }
+
+  // 3. Incoming Peer Gifts
+  const gifts = db.prepare(`
+    SELECT g.*, uf.name AS from_name, o.title AS offer_title, pkg.title AS package_title
+    FROM gifts g
+    JOIN users uf ON uf.id = g.from_employee
+    LEFT JOIN offers o ON o.id = g.offer_id
+    LEFT JOIN packages pkg ON pkg.id = g.package_id
+    WHERE g.to_employee = ?
+    ORDER BY g.created_at DESC
+  `).all(employee_id);
+
+  for (const g of gifts) {
+    let body = "";
+    if (g.kind === "credit") {
+      body = `sent you ${g.amount_all} ALL.`;
+    } else if (g.kind === "offer") {
+      body = `gifted you "${g.offer_title}".`;
+    } else if (g.kind === "bundle") {
+      body = `gifted you the bundle "${g.package_title}".`;
+    }
+    if (g.note) {
+      body += `\n"${g.note}"`;
+    }
+    notifs.push({
+      id: `gift-${g.id}`,
+      type: "gift",
+      title: `Gift from ${g.from_name} 🎁`,
+      body,
+      note: g.note,
+      amount: g.amount_all,
+      from_name: g.from_name,
+      kind: g.kind,
+      live: true,
+      created_at: g.created_at,
+    });
+  }
+
+  // 4. Selection status changes (responses for approval or denial)
+  const selections = db.prepare(`
+    SELECT s.*
+    FROM selections s
+    WHERE s.employee_id = ? AND s.status != 'pending' AND s.gifted_by IS NULL
+    ORDER BY s.created_at DESC
+  `).all(employee_id);
+
+  for (const s of selections) {
+    const isApproved = s.status === "approved";
+    notifs.push({
+      id: `selection-${s.id}`,
+      type: "selection_status",
+      title: isApproved ? "Benefit approved ✅" : "Benefit request update ❌",
+      body: isApproved
+        ? `Your request for ${s.total_amount} ALL was approved.`
+        : `Your request for ${s.total_amount} ALL was rejected.`,
+      status: s.status,
+      amount: s.total_amount,
+      live: true,
+      created_at: s.created_at,
+    });
+  }
+
+  // Sort chronologically (newest first)
+  notifs.sort((a, b) => b.created_at.localeCompare(a.created_at));
+
   res.json(notifs);
 });
 

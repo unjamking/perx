@@ -77,6 +77,12 @@ const STRINGS = {
     perxifyDone: "Your matches are ready", youLove: "You're into",
     perxifyKeepSwiping: "Swipe a few more to unlock picks.",
     perxifyMore: "Swipe more",
+    notifications: "Notifications",
+    noNotifications: "No notifications yet.",
+    newNotification: "New",
+    giftFrom: "Gift from",
+    benefitApproved: "Benefit approved ✅",
+    benefitRejected: "Benefit request update ❌",
   },
   sq: {
     Home: "Kreu", Explore: "Eksploro", "My Benefits": "Përfitimet", Challenges: "Sfidat", Profile: "Profili",
@@ -137,6 +143,12 @@ const STRINGS = {
     perxifyDone: "Përputhjet e tua janë gati", youLove: "Të pëlqejnë",
     perxifyKeepSwiping: "Rrëshqit edhe pak për të zbuluar zgjedhjet.",
     perxifyMore: "Rrëshqit më shumë",
+    notifications: "Njoftimet",
+    noNotifications: "Nuk ka njoftime ende.",
+    newNotification: "I ri",
+    giftFrom: "Dhuratë nga",
+    benefitApproved: "Përfitimi u miratua ✅",
+    benefitRejected: "Përditësim i kërkesës ❌",
   },
 };
 
