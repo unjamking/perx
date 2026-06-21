@@ -21,7 +21,13 @@ function Page({ children }) {
 // Gate: must be logged in; if role doesn't match this route, bounce to its own dashboard.
 function Protected({ role, children }) {
   const user = session.user();
-  if (!user) return <Navigate to="/" replace />;
+  if (!user) {
+    const currentHash = window.location.hash || "#/";
+    if (currentHash === "#/" || currentHash === "#/change-password") {
+      return children;
+    }
+    return <Navigate to="/" replace />;
+  }
   if (user.must_change_password) return <Navigate to="/change-password" replace />;
   if (user.role !== role) return <Navigate to={roleRoute[user.role] || "/"} replace />;
   return children;

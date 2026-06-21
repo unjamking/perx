@@ -15,8 +15,7 @@ import {
 import { printReport } from "../lib/report.js";
 import s from "./HRDashboard.module.css";
 
-// Logged-in provider's id (falls back to demo Zen Spa for safety).
-const PID = session.user()?.provider_id || DEMO.providerId;
+// Categories for offers
 const CATEGORIES = ["💪 Fitness", "🍽️ Food", "🧘 Wellness", "✈️ Travel", "📱 Telecom", "📚 Education"];
 
 const NAV = [
@@ -45,6 +44,9 @@ export default function ProviderDashboard() {
   const flash = (m) => { setToast(m); setTimeout(() => setToast(""), 3000); };
   const itemVariants = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100, damping: 15 } } };
   const containerVariants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08 } } };
+
+  const user = session.user();
+  const pid = user?.provider_id || DEMO.providerId;
 
   return (
     <DesktopShell>
@@ -80,15 +82,15 @@ export default function ProviderDashboard() {
           <AnimatePresence mode="wait">
             <motion.div key={view} variants={containerVariants} initial="hidden" animate="show" exit={{ opacity: 0 }}
               style={{ display: "flex", flexDirection: "column", gap: 32 }}>
-              {view === "Overview" && <Overview itemVariants={itemVariants} />}
-              {view === "AI Optimization" && <AIOptimization itemVariants={itemVariants} />}
-              {view === "Analytics" && <Analytics itemVariants={itemVariants} />}
-              {view === "Offers" && <Offers onToast={flash} itemVariants={itemVariants} />}
-              {view === "Packages" && <Packages onToast={flash} itemVariants={itemVariants} />}
-              {view === "Bookings" && <Bookings itemVariants={itemVariants} />}
-              {view === "Revenue & Payouts" && <Revenue itemVariants={itemVariants} />}
-              {view === "Reviews" && <Reviews onToast={flash} itemVariants={itemVariants} />}
-              {view === "Company Profile" && <Profile onToast={flash} itemVariants={itemVariants} />}
+              {view === "Overview" && <Overview pid={pid} itemVariants={itemVariants} />}
+              {view === "AI Optimization" && <AIOptimization pid={pid} itemVariants={itemVariants} />}
+              {view === "Analytics" && <Analytics pid={pid} itemVariants={itemVariants} />}
+              {view === "Offers" && <Offers pid={pid} onToast={flash} itemVariants={itemVariants} />}
+              {view === "Packages" && <Packages pid={pid} onToast={flash} itemVariants={itemVariants} />}
+              {view === "Bookings" && <Bookings pid={pid} itemVariants={itemVariants} />}
+              {view === "Revenue & Payouts" && <Revenue pid={pid} itemVariants={itemVariants} />}
+              {view === "Reviews" && <Reviews pid={pid} onToast={flash} itemVariants={itemVariants} />}
+              {view === "Company Profile" && <Profile pid={pid} onToast={flash} itemVariants={itemVariants} />}
             </motion.div>
           </AnimatePresence>
         </main>
@@ -124,7 +126,7 @@ function Empty({ msg }) {
 const tipStyle = { background: "#fff", border: "1px solid var(--border)", borderRadius: "8px" };
 
 /* ── Overview ── */
-function Overview({ itemVariants }) {
+function Overview({ pid: PID, itemVariants }) {
   const [rev, setRev] = useState(null);
   const [offers, setOffers] = useState([]);
   const [opt, setOpt] = useState(null);
@@ -159,7 +161,7 @@ function Overview({ itemVariants }) {
 }
 
 /* ── AI Optimization ── */
-function AIOptimization({ itemVariants }) {
+function AIOptimization({ pid: PID, itemVariants }) {
   const [opt, setOpt] = useState(null);
   useEffect(() => { api.providerOptimize(PID).then(setOpt); }, []);
   if (!opt) return null;
@@ -183,7 +185,7 @@ function AIOptimization({ itemVariants }) {
 }
 
 /* ── Analytics ── */
-function Analytics({ itemVariants }) {
+function Analytics({ pid: PID, itemVariants }) {
   const [data, setData] = useState([]);
   useEffect(() => { api.providerAnalytics(PID).then(setData); }, []);
   return (
@@ -227,7 +229,7 @@ function Analytics({ itemVariants }) {
 /* ── Offers (CRUD + discount/deal/capacity/targeting) ── */
 const blankOffer = { title: "", description: "", category: "🧘 Wellness", price_all: "", discount_pct: 0, capacity: 0, deal_ends: "", target_group: "" };
 
-function Offers({ onToast, itemVariants }) {
+function Offers({ pid: PID, onToast, itemVariants }) {
   const [offers, setOffers] = useState([]);
   const [edit, setEdit] = useState(null); // offer object or "new"
   const load = () => api.providerOffers(PID).then(setOffers);
@@ -292,13 +294,13 @@ function Offers({ onToast, itemVariants }) {
         {offers.length === 0 && <Empty msg="No offers yet. Create your first." />}
       </div>
       <AnimatePresence>
-        {edit && <OfferEditor offer={edit === "new" ? null : edit} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); load(); onToast("Offer saved"); }} />}
+        {edit && <OfferEditor pid={PID} offer={edit === "new" ? null : edit} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); load(); onToast("Offer saved"); }} />}
       </AnimatePresence>
     </motion.div>
   );
 }
 
-function OfferEditor({ offer, onClose, onSaved }) {
+function OfferEditor({ pid: PID, offer, onClose, onSaved }) {
   const [f, setF] = useState(offer ? {
     title: offer.title, description: offer.description || "", category: offer.category, price_all: offer.price_all,
     discount_pct: offer.discount_pct || 0, capacity: offer.capacity || 0, deal_ends: offer.deal_ends || "", target_group: offer.target_group || "",
@@ -391,7 +393,7 @@ function OfferEditor({ offer, onClose, onSaved }) {
 }
 
 /* ── Packages (bundles) ── */
-function Packages({ onToast, itemVariants }) {
+function Packages({ pid: PID, onToast, itemVariants }) {
   const [pkgs, setPkgs] = useState([]);
   const [offers, setOffers] = useState([]);
   const [form, setForm] = useState({ title: "", description: "", offer_ids: [] });
@@ -447,7 +449,7 @@ function Packages({ onToast, itemVariants }) {
 }
 
 /* ── Bookings / redemptions ── */
-function Bookings({ itemVariants }) {
+function Bookings({ pid: PID, itemVariants }) {
   const [rows, setRows] = useState([]);
   useEffect(() => { api.providerBookings(PID).then(setRows); }, []);
   return (
@@ -474,7 +476,7 @@ function Bookings({ itemVariants }) {
 }
 
 /* ── Revenue & Payouts ── */
-function Revenue({ itemVariants }) {
+function Revenue({ pid: PID, itemVariants }) {
   const [rev, setRev] = useState(null);
   useEffect(() => { api.providerRevenue(PID).then(setRev); }, []);
   if (!rev) return null;
@@ -523,7 +525,7 @@ function Revenue({ itemVariants }) {
 }
 
 /* ── Reviews + reply ── */
-function Reviews({ onToast, itemVariants }) {
+function Reviews({ pid: PID, onToast, itemVariants }) {
   const [reviews, setReviews] = useState([]);
   const [replyingId, setReplyingId] = useState(null);
   const [text, setText] = useState("");
@@ -575,7 +577,7 @@ function Reviews({ onToast, itemVariants }) {
 }
 
 /* ── Company Profile ── */
-function Profile({ onToast, itemVariants }) {
+function Profile({ pid: PID, onToast, itemVariants }) {
   const [p, setP] = useState(null);
   const [saving, setSaving] = useState(false);
   useEffect(() => { api.providerProfile(PID).then(setP); }, []);
