@@ -33,14 +33,14 @@ const login = async (email, password) => {
 };
 
 test("login succeeds with demo creds", async () => {
-  const { status, body } = await login("arta@techtirana.al", "perx1234");
+  const { status, body } = await login("anja@techtirana.al", "perx1234");
   assert.equal(status, 200);
   assert.ok(body.token);
   assert.equal(body.user.role, "employee");
 });
 
 test("login rejects wrong password", async () => {
-  const { status } = await login("arta@techtirana.al", "nope");
+  const { status } = await login("anja@techtirana.al", "nope");
   assert.equal(status, 401);
 });
 
@@ -50,7 +50,7 @@ test("protected route blocks anonymous", async () => {
 });
 
 test("role gate blocks wrong role", async () => {
-  const { body } = await login("arta@techtirana.al", "perx1234"); // employee
+  const { body } = await login("anja@techtirana.al", "perx1234"); // employee
   const r = await api("/api/hr/users", {}, body.token);
   assert.equal(r.status, 403);
 });
@@ -72,7 +72,7 @@ test("auto-approval pays out instantly under an enabled rule", async () => {
   const { db } = require("./database");
   db.prepare("UPDATE auto_rules SET enabled = 1 WHERE category = ?").run("📱 Telecom");
 
-  const { body } = await login("arta@techtirana.al", "perx1234");
+  const { body } = await login("anja@techtirana.al", "perx1234");
   // Telecom rule: auto-approve <= 2000. Data 10GB = 1500.
   const offers = await (await api("/api/offers", {}, body.token)).json();
   const telecom = offers.find((o) => o.title === "Data 10GB");
@@ -96,7 +96,7 @@ test("selection ignores client employee_id, uses token", async () => {
 });
 
 test("gift rejects self-gift and over-budget", async () => {
-  const { body } = await login("arta@techtirana.al", "perx1234");
+  const { body } = await login("anja@techtirana.al", "perx1234");
   const self = await api("/api/gifts", { method: "POST", body: JSON.stringify({ to_employee: 1, amount_all: 100 }) }, body.token);
   assert.equal(self.status, 400); // can't gift yourself (token id == 1)
   const over = await api("/api/gifts", { method: "POST", body: JSON.stringify({ to_employee: 2, amount_all: 9999999 }) }, body.token);
@@ -113,12 +113,12 @@ test("budget guard blocks over-budget selection", async () => {
 });
 
 test("capacity guard blocks over-booked offer", async () => {
-  const { body } = await login("arta@techtirana.al", "perx1234");
+  const { body } = await login("anja@techtirana.al", "perx1234");
   // Create an offer with capacity 1 via provider, book it, second booking blocked.
   const { body: prov } = await login("owner@zenspatirana.al", "perx1234");
   const off = await (await api("/api/provider/offers", { method: "POST", body: JSON.stringify({
     provider_id: prov.user.provider_id, title: "Limited Slot", category: "🧘 Wellness", price_all: 500, capacity: 1 }) }, prov.token)).json();
-  // First booking (Arta) — auto-approves? Wellness has no enabled rule, so pending; approve via employer.
+  // First booking (Anja) — auto-approves? Wellness has no enabled rule, so pending; approve via employer.
   const s1 = await (await api("/api/selections", { method: "POST", body: JSON.stringify({
     items: [{ offer_id: off.id, price_all: 500 }] }) }, body.token)).json();
   const { body: empl } = await login("manager@techtirana.al", "perx1234");
@@ -177,12 +177,12 @@ test("employee notifications: blocks anonymous, returns gifts and selection stat
   const initialNotifs = await initialRes.json();
   assert.ok(Array.isArray(initialNotifs));
 
-  // 3. Send a gift from Arta (id 1) to Besnik
-  const { body: arta } = await login("arta@techtirana.al", "perx1234");
+  // 3. Send a gift from Anja (id 1) to Besnik
+  const { body: anja } = await login("anja@techtirana.al", "perx1234");
   const giftRes = await api("/api/gifts", {
     method: "POST",
     body: JSON.stringify({ to_employee: besnik.user.id, amount_all: 500, note: "Keep it up!" }),
-  }, arta.token);
+  }, anja.token);
   assert.equal(giftRes.status, 200);
 
   // 4. Fetch notifications again and find the new gift
@@ -192,7 +192,7 @@ test("employee notifications: blocks anonymous, returns gifts and selection stat
 
   const giftNotif = afterGiftNotifs.find((n) => n.type === "gift" && n.amount === 500);
   assert.ok(giftNotif);
-  assert.equal(giftNotif.from_name, "Arta");
+  assert.equal(giftNotif.from_name, "Anja");
   assert.equal(giftNotif.note, "Keep it up!");
   assert.match(giftNotif.body, /sent you 500 ALL/);
 

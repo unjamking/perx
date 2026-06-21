@@ -176,7 +176,7 @@ function seed() {
   const user = db.prepare(
     "INSERT INTO users (name,role,company_id,department_id,budget_total,budget_spent) VALUES (?,?,1,?,?,?)");
   // budget_total = dept budget, budget_spent seeded so "left" shows a real number
-  const arta = user.run("Arta", "employee", eng, 12000, 5800).lastInsertRowid;   // 6,200 left per spec
+  const anja = user.run("Anja", "employee", eng, 12000, 5800).lastInsertRowid;   // 6,200 left per spec
   const besnik = user.run("Besnik", "employee", sales, 10000, 2000).lastInsertRowid;
   const drita = user.run("Drita", "employee", design, 10000, 8500).lastInsertRowid; // <20% -> red
   // Extra demo employees so tables, charts and sentiment look populated.
@@ -318,18 +318,18 @@ function seed() {
 
   // Challenge participation (real signal for sentiment + completion bars)
   const insProg = db.prepare("INSERT INTO challenge_progress (challenge_id,employee_id,completed) VALUES (?,?,?)");
-  insProg.run(wellnessChallenge, arta, 1);
+  insProg.run(wellnessChallenge, anja, 1);
   insProg.run(wellnessChallenge, besnik, 1);
   insProg.run(wellnessChallenge, drita, 0);
   insProg.run(wellnessChallenge, enkel, 1);
   insProg.run(wellnessChallenge, ilir, 0);
-  insProg.run(stepsChallenge, arta, 1);
+  insProg.run(stepsChallenge, anja, 1);
   insProg.run(stepsChallenge, flora, 1);
   insProg.run(stepsChallenge, klara, 0);
   insProg.run(stepsChallenge, jeta, 0);
   insProg.run(mindfulChallenge, drita, 1);
   insProg.run(mindfulChallenge, ilir, 1);
-  insProg.run(mindfulChallenge, arta, 0);
+  insProg.run(mindfulChallenge, anja, 0);
 
   // Real approved selections + transactions across the last months so forecasting,
   // analytics trend, and category breakdown all run on actual data (no synthetic numbers).
@@ -349,16 +349,16 @@ function seed() {
   };
 
   // Spread history Jan–Jun 2026 → drives real monthly trend & forecast slope.
-  purchase(arta, "Monthly Membership", "2026-01-14 10:00:00");
-  purchase(arta, "Relaxing Massage", "2026-02-09 11:00:00");
+  purchase(anja, "Monthly Membership", "2026-01-14 10:00:00");
+  purchase(anja, "Relaxing Massage", "2026-02-09 11:00:00");
   purchase(besnik, "Lunch Voucher x10", "2026-02-20 09:30:00");
-  purchase(arta, "Course Credit", "2026-03-05 14:00:00");
+  purchase(anja, "Course Credit", "2026-03-05 14:00:00");
   purchase(drita, "Monthly Wellness", "2026-03-22 16:00:00");
   purchase(besnik, "Data 10GB", "2026-04-02 08:00:00");
-  purchase(arta, "Monthly Membership", "2026-04-18 10:00:00");
+  purchase(anja, "Monthly Membership", "2026-04-18 10:00:00");
   purchase(drita, "Relaxing Massage", "2026-05-07 13:00:00");
   purchase(besnik, "Business Dinner x5", "2026-05-25 19:00:00");
-  purchase(arta, "Monthly Wellness", "2026-06-03 12:00:00");
+  purchase(anja, "Monthly Wellness", "2026-06-03 12:00:00");
   purchase(drita, "Weekend Trip", "2026-06-15 09:00:00");
   // More history from the extra employees → fuller charts & tables.
   purchase(enkel, "3-Month Membership", "2026-01-22 10:00:00");
@@ -378,8 +378,8 @@ function seed() {
 
   // Peer gifts (real transfers between colleagues)
   const insGift = db.prepare("INSERT INTO gifts (from_employee,to_employee,amount_all,note,created_at) VALUES (?,?,?,?,?)");
-  insGift.run(arta, drita, 1000, "Thanks for covering my shift! 🙌", "2026-06-10 15:00:00");
-  insGift.run(besnik, arta, 500, "Happy birthday!", "2026-06-12 09:00:00");
+  insGift.run(anja, drita, 1000, "Thanks for covering my shift! 🙌", "2026-06-10 15:00:00");
+  insGift.run(besnik, anja, 500, "Happy birthday!", "2026-06-12 09:00:00");
   insGift.run(flora, jeta, 750, "Great campaign work! 🚀", "2026-06-13 10:00:00");
   insGift.run(enkel, klara, 300, "Coffee's on me ☕", "2026-06-14 08:30:00");
   insGift.run(ilir, drita, 1200, "Welcome to the design team!", "2026-06-16 13:00:00");
@@ -404,13 +404,13 @@ function seed() {
 
   // Vendor demand signals (employee searches → provider matching)
   const insSearch = db.prepare("INSERT INTO vendor_searches (company_id,employee_id,query,category,matched) VALUES (1,?,?,?,?)");
-  insSearch.run(arta, "yoga studio near me", "🧘 Wellness", 1);
+  insSearch.run(anja, "yoga studio near me", "🧘 Wellness", 1);
   insSearch.run(drita, "physiotherapy clinic", "🧘 Wellness", 0);
   insSearch.run(besnik, "language courses english", "📚 Education", 1);
-  insSearch.run(arta, "childcare daycare", "👶 Childcare", 0);
+  insSearch.run(anja, "childcare daycare", "👶 Childcare", 0);
   insSearch.run(drita, "dental checkup", "🏥 Health", 0);
   insSearch.run(besnik, "co-working space", "💼 Workspace", 0);
-  insSearch.run(arta, "dental cleaning", "🏥 Health", 0);
+  insSearch.run(anja, "dental cleaning", "🏥 Health", 0);
 
   // ── Employer: benefit policies (category enabled + monthly cap) ──
   const insPolicy = db.prepare("INSERT INTO benefit_policies (company_id,category,enabled,max_per_month) VALUES (1,?,?,?)");
@@ -447,7 +447,7 @@ function seed() {
   const zen = provIds["Zen Spa Tirana"];
   const insReview = db.prepare(`INSERT INTO reviews (provider_id,offer_id,employee_id,rating,comment,reply,created_at)
     VALUES (?,?,?,?,?,?,?)`);
-  insReview.run(zen, offerIds["Relaxing Massage"].id, arta, 5, "Best massage in Tirana, felt amazing after.", null, "2026-02-12 10:00:00");
+  insReview.run(zen, offerIds["Relaxing Massage"].id, anja, 5, "Best massage in Tirana, felt amazing after.", null, "2026-02-12 10:00:00");
   insReview.run(zen, offerIds["Monthly Wellness"].id, drita, 4, "Great facilities, sometimes busy at peak hours.", "Thanks Drita! Try our morning slots — much quieter. 🧘", "2026-03-25 09:00:00");
   insReview.run(zen, offerIds["Relaxing Massage"].id, drita, 5, "Booked again, therapist was excellent.", null, "2026-05-10 14:00:00");
   insReview.run(zen, offerIds["Monthly Wellness"].id, ilir, 5, "Membership is worth every lek. Staff superb.", null, "2026-04-02 11:00:00");
@@ -461,10 +461,10 @@ function seed() {
 
   // ── Employee: bookmarks ──
   const insBm = db.prepare("INSERT INTO bookmarks (employee_id,offer_id) VALUES (?,?)");
-  insBm.run(arta, offerIds["Weekend Trip"].id);
-  insBm.run(arta, offerIds["Course Credit"].id);
-  insBm.run(arta, offerIds["Monthly Wellness"].id);
-  insBm.run(arta, offerIds["Business Dinner x5"].id);
+  insBm.run(anja, offerIds["Weekend Trip"].id);
+  insBm.run(anja, offerIds["Course Credit"].id);
+  insBm.run(anja, offerIds["Monthly Wellness"].id);
+  insBm.run(anja, offerIds["Business Dinner x5"].id);
 
   // ── Employer: provider meetings (calendar) ──
   const insMeet = db.prepare(`INSERT INTO meetings (company_id,provider_id,title,date,time,location,notes)
@@ -475,7 +475,7 @@ function seed() {
 
   // ── Employee: recurring subscriptions ──
   const insSub = db.prepare(`INSERT INTO subscriptions (employee_id,offer_id,price_all,next_run,last_run) VALUES (?,?,?,?,?)`);
-  insSub.run(arta, offerIds["Monthly Membership"].id, offerIds["Monthly Membership"].price, "2026-07-01", "2026-06-01");
+  insSub.run(anja, offerIds["Monthly Membership"].id, offerIds["Monthly Membership"].price, "2026-07-01", "2026-06-01");
   insSub.run(drita, offerIds["Monthly Wellness"].id, offerIds["Monthly Wellness"].price, "2026-07-01", "2026-06-01");
 
   // ── Audit log: seed a few entries so the trail isn't empty ──

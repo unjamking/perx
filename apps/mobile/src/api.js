@@ -66,6 +66,6 @@ export const api = {
   unsubscribe: (id) => req(`/api/employee/subscriptions/${id}`, { method: "DELETE" }),
 };
 
-// Current employee id — set on login, read by screens. Defaults to demo Arta until auth resolves.
+// Current employee id — set on login, read by screens. Defaults to demo Anja until auth resolves.
 export let EMPLOYEE_ID = 1;
 export const setEmployeeId = (id) => { EMPLOYEE_ID = id; };

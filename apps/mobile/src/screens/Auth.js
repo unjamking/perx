@@ -8,7 +8,7 @@ import { useAuth } from "../AuthContext";
 import { useLang } from "../i18n";
 import { Bounce } from "../components";
 
-const DEMO = "arta@techtirana.al";
+const DEMO = "anja@techtirana.al";
 
 export default function Auth() {
   const { login } = useAuth();

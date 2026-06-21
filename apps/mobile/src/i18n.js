@@ -58,7 +58,7 @@ const STRINGS = {
     signInSub: "Sign in to your benefits", emailPh: "Email", passwordPh: "Password",
     signingIn: "Signing in…", signIn: "Sign In",
     accountsByHr: "Accounts are created by your HR team. Contact HR if you need access.",
-    useDemo: "Use demo account (Arta)",
+    useDemo: "Use demo account (Anja)",
     fillEmailPw: "Please enter your email and password.", serverUnreachable: "Couldn't reach the server.",
     // ChangePassword
     setNewPassword: "Set a new password",
@@ -128,7 +128,7 @@ const STRINGS = {
     signInSub: "Hyr te përfitimet e tua", emailPh: "Email", passwordPh: "Fjalëkalimi",
     signingIn: "Duke hyrë…", signIn: "Hyr",
     accountsByHr: "Llogaritë krijohen nga ekipi i HR. Kontakto HR nëse të duhet qasje.",
-    useDemo: "Përdor llogarinë demo (Arta)",
+    useDemo: "Përdor llogarinë demo (Anja)",
     fillEmailPw: "Të lutem fut email-in dhe fjalëkalimin.", serverUnreachable: "Nuk u arrit serveri.",
     setNewPassword: "Vendos një fjalëkalim të ri",
     tempPasswordMsg: "Llogaria jote përdor një fjalëkalim të përkohshëm. Zgjidh një të ri për të vazhduar.",
